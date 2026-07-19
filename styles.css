@@ -155,6 +155,31 @@ button {
   box-shadow: var(--shadow);
 }
 
+.update-form-container {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+
+.update-form-container form {
+  display: grid;
+  gap: 1rem;
+}
+
+.update-form-container label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.update-form-container textarea {
+  width: 100%;
+  min-height: 12rem;
+  padding: 1rem;
+  border: 1px solid rgba(51, 42, 36, 0.15);
+  border-radius: 1rem;
+  font: inherit;
+  resize: vertical;
+}
+
 .menu-card h3,
 .event-card h3 {
   margin-top: 0;

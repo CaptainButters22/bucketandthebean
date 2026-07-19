@@ -138,4 +138,19 @@ function flattenMenu(menu) {
 // Simple HTML escaper used when rendering remote data
 function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" })[c]); }
 
+function attachUpdateFormHandler() {
+  const form = document.getElementById('update-form');
+  if (!form) return;
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const message = document.getElementById('update-message')?.value.trim();
+    if (!message) {
+      return alert('Please enter a message before submitting.');
+    }
+    const mailto = `mailto:danielgentryadam@gmail.com?subject=${encodeURIComponent('Bucket and the Bean update request')}&body=${encodeURIComponent(message)}`;
+    window.location.href = mailto;
+  });
+}
+
 loadMenu();
+attachUpdateFormHandler();

@@ -47,22 +47,12 @@
         </div>
       </section>
 
-      <section id="updates" class="events-section">
-        <div class="section-header">
-          <p class="eyebrow">Updates</p>
-          <h2>Stay in the loop</h2>
-          <p>Send a request to receive menu updates, special offers, and event news directly by email.</p>
-        </div>
-        <div class="event-list" style="display: flex; justify-content: center;">
-          <a class="btn btn-primary" href="mailto:danielgentryadam@gmail.com?subject=Menu%20Update%20Request&body=Hi%2C%0A%0APlease%20send%20me%20the%20latest%20updates%20for%20Bucket%20and%20the%20Bean.%0A%0AThank%20you.%0A">Send update request</a>
-        </div>
-      </section>
 
       <section id="events" class="events-section">
         <div class="section-header">
           <p class="eyebrow">Event Tab</p>
-          <h2>Upcoming events</h2>
-          <p>Join us for coffee tastings, live music, and community gatherings.</p>
+          <h2>Events</h2>
+          <p>Join us for coffee tastings, game days, and community gatherings.</p>
         </div>
 
         <div class="event-list">
@@ -73,9 +63,9 @@
             <button>RSVP</button>
           </article>
           <article class="event-card">
-            <h3>Latte Art Workshop</h3>
-            <p>Saturday, August 2 · 10:00 AM</p>
-            <p>Learn how to pour hearts, leaves, and designs in every cup.</p>
+            <h3>Beans & Skeins</h3>
+            <p>Saturday, August 2 · 2:00 PM &ndash; 4:00 PM</p>
+            <p>A crafting night where guests sip coffee while working on a craft of their choice.</p>
             <button>RSVP</button>
           </article>
           <article class="event-card">
@@ -84,6 +74,21 @@
             <p>Bring your board games and meet local players. Snack and drink specials available.</p>
             <button>RSVP</button>
           </article>
+        </div>
+      </section>
+
+      <section id="updates" class="events-section">
+        <div class="section-header">
+          <p class="eyebrow">Updates</p>
+          <h2>Request updates</h2>
+          <p>Send a message below to request the latest menu and event news by email.</p>
+        </div>
+        <div class="update-form-container">
+          <form id="update-form">
+            <label for="update-message">Your update request</label>
+            <textarea id="update-message" rows="5" placeholder="Tell us what you'd like to know or receive updates about..." required></textarea>
+            <button type="submit" class="btn btn-primary">Submit request</button>
+          </form>
         </div>
       </section>
     </main>
