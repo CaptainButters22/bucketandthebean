@@ -9,9 +9,9 @@ buttons.forEach((button) => {
     }
   });
 });
-// Configuration: set this to your JoeCoffee public menu endpoint (if public/CORS-enabled).
-// Example: 'https://api.joecoffee.com/menus/STORE_ID'
-const MENU_API_URL = 'https://shop.joe.coffee/explore/stores/84c55c35-834f-4b94-ad0c-ccea76163b36'; // JoeCoffee store page
+// Configuration: set this to your JoeCoffee public menu endpoint.
+// Because the JoeCoffee store page blocks direct browser fetches, use a CORS-friendly proxy.
+const MENU_API_URL = 'https://api.allorigins.win/raw?url=https://shop.joe.coffee/explore/stores/84c55c35-834f-4b94-ad0c-ccea76163b36';
 
 function formatPrice(p) {
   if (p == null) return '';
@@ -46,26 +46,91 @@ async function loadMenu() {
   try {
     const res = await fetch(MENU_API_URL);
     if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-    const data = await res.json();
+    const text = await res.text();
 
-    // Normalise an items array from common shapes
-    const items = data.items || data.menu || data.products || [];
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (jsonErr) {
+      const marker = '<script id="__NEXT_DATA__" type="application/json">';
+      const start = text.indexOf(marker);
+      if (start === -1) throw new Error('Could not find embedded JSON in response HTML');
+      const end = text.indexOf('</script>', start);
+      if (end === -1) throw new Error('Embedded JSON script tag not closed');
+      const jsonText = text.slice(start + marker.length, end);
+      data = JSON.parse(jsonText);
+    }
+
+    const items = extractMenuItems(data);
     const grid = document.querySelector('.menu-grid');
     if (!grid) return;
 
+    if (items.length === 0) {
+      console.warn('Remote menu loaded but no items were found, falling back to static markup.');
+      attachButtonHandlers(document);
+      return;
+    }
+
     grid.innerHTML = items.map(item => {
       const name = item.name || item.title || 'Untitled';
-      const desc = item.description || item.short_description || '';
-      const price = item.price || item.price_cents || item.amount || '';
+      const desc = item.description || item.short_description || item.subtitle || '';
+      const price = item.price || item.price_cents || item.amount || item.listPrice || '';
       return `\n          <article class="menu-card">\n            <h3>${escapeHtml(String(name))}</h3>\n            <p>${escapeHtml(String(desc))}</p>\n            <span class="price">${formatPrice(price)}</span>\n            <button>Add to order</button>\n          </article>`;
     }).join('\n');
 
     attachButtonHandlers(grid);
   } catch (err) {
     console.error('Failed to load remote menu:', err);
-    // fallback to static markup
     attachButtonHandlers(document);
   }
+}
+
+function extractMenuItems(data) {
+  if (!data || typeof data !== 'object') return [];
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (data.items) return data.items;
+  if (data.menu) return data.menu;
+  if (data.products) return data.products;
+
+  const fallback = data.props?.pageProps?.fallback;
+  if (fallback && typeof fallback === 'object') {
+    for (const key in fallback) {
+      const entry = fallback[key];
+      if (entry?.data?.menu) return flattenMenu(entry.data.menu);
+      if (entry?.data?.items) return entry.data.items;
+      if (entry?.data?.products) return entry.data.products;
+    }
+  }
+
+  if (data.props?.pageProps?.initialData) {
+    const initial = data.props.pageProps.initialData;
+    if (initial.menu) return flattenMenu(initial.menu);
+  }
+
+  return [];
+}
+
+function flattenMenu(menu) {
+  if (!Array.isArray(menu)) return [];
+  const items = [];
+  for (const category of menu) {
+    if (!category || typeof category !== 'object') continue;
+    if (Array.isArray(category.items)) {
+      items.push(...category.items);
+    }
+    if (Array.isArray(category.subCategories)) {
+      for (const sub of category.subCategories) {
+        if (sub?.items && Array.isArray(sub.items)) {
+          items.push(...sub.items);
+        }
+      }
+    }
+  }
+  return items;
 }
 
 // Simple HTML escaper used when rendering remote data
