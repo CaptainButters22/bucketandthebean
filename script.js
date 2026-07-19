@@ -44,7 +44,8 @@ async function loadMenu() {
   }
 
   try {
-    const res = await fetch(MENU_API_URL);
+    console.info('Loading remote menu from', MENU_API_URL);
+    const res = await fetch(MENU_API_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
     const text = await res.text();
 
@@ -62,6 +63,7 @@ async function loadMenu() {
     }
 
     const items = extractMenuItems(data);
+    console.info('Remote menu item count:', items.length);
     const grid = document.querySelector('.menu-grid');
     if (!grid) return;
 
