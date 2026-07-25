@@ -44,6 +44,9 @@
       .store-side { justify-self: center; width: 60%; max-width: 320px; margin-bottom: 8px; }
       .store-button-center { margin: 6px auto; }
     }
+    /* Subtle legal/terms area that blends with footer */
+    .site-legal { font-size: 12px; color: #707070; opacity: 0.9; text-align: center; padding: 8px 12px 4px; margin-top: 6px; }
+    .site-legal a { color: inherit; text-decoration: underline; opacity: 0.85; }
     </style>
   <!-- noop patch: trigger commit -->
   </head>
@@ -140,6 +143,9 @@
     <footer class="site-footer">
       <p>Bucket and the Bean · Open daily 6:30AM–3:30PM · 679 Boston Neck Road</p>
       <p>Website: <a href="https://bucketandthebean.com">bucketandthebean.com</a></p>
+      <div class="site-legal">
+        By using this website you agree to our terms: content is provided for general information only and does not create a contractual relationship. We make reasonable efforts to keep information current but provide no warranties about accuracy or availability. For ordering, pricing, or menu details please contact the store directly. © <span id="legal-year"></span> Bucket and the Bean.
+      </div>
     </footer>
 
     <script src="script.js"></script>
