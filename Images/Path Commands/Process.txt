@@ -1,0 +1,9 @@
+1.	From File Explorer (fast)
+•	Open File Explorer and browse to C:\Users\danie\coffee-shop.
+•	Click the address bar, type powershell and press Enter — a PowerShell window opens with that folder as the current directory.
+2.	Right‑click context menu
+•	In File Explorer, while inside C:\Users\danie\coffee-shop, hold Shift and right‑click an empty area → choose "Open PowerShell window here" or "Open in Windows Terminal".
+•	If your context menu shows "Open in Terminal", that opens Windows Terminal with PowerShell by default.
+3.	From an already open PowerShell or Command Prompt
+•	Open PowerShell from Start, then run: cd "C:\Users\danie\coffee-shop"
+•	Confirm you’re in the right folder: Get-Location or pwd
