@@ -29,7 +29,7 @@
       /* menu images (baked-goods, coffee-machine) — same size by default; ~1.25x */
       .store-side.baked { left: 0; width: 206px; }
       .store-side.machine { right: 0; width: 206px; }
-      .store-button-center { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+      .store-button-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
       /* Button styles to keep primary consistent */
       .btn { display: inline-block; text-decoration: none; border: none; cursor: pointer; font-weight: 600; }
       .btn-primary { background: #5b3a30; color: #fff; padding: 12px 24px; border-radius: 8px; }
@@ -134,34 +134,5 @@
     </footer>
 
     <script src="script.js"></script>
-    <script>
-      // Align the store/menu button under the header "Menu" nav link
-      function alignMenuButton() {
-        const navMenu = document.getElementById('nav-menu');
-        const button = document.querySelector('.store-button-center');
-        const wrapper = document.querySelector('.store-wrapper');
-        if (!navMenu || !button || !wrapper) return;
-        const navRect = navMenu.getBoundingClientRect();
-        const wrapperRect = wrapper.getBoundingClientRect();
-        // center x of nav menu relative to wrapper
-        const targetCenterX = navRect.left + navRect.width / 2;
-        // base left to center the button under nav center
-        const baseLeft = targetCenterX - wrapperRect.left - (button.offsetWidth / 2);
-        // clamp base position inside wrapper
-        const baseClamped = Math.max(0, Math.min(baseLeft, wrapperRect.width - button.offsetWidth));
-        // currentLeft: prefer current style if present, otherwise use baseClamped
-        const currentLeft = parseFloat(button.style.left) || baseClamped;
-        // move the button by half its total width from its current position
-        const delta = button.offsetWidth / 2;
-        const newLeft = currentLeft + delta;
-        // clamp inside wrapper
-        const clamped = Math.max(0, Math.min(newLeft, wrapperRect.width - button.offsetWidth));
-        button.style.left = clamped + 'px';
-      }
-      window.addEventListener('load', alignMenuButton);
-      window.addEventListener('resize', alignMenuButton);
-      // in case dynamic content changes
-      new MutationObserver(alignMenuButton).observe(document.body, { childList: true, subtree: true });
-    </script>
   </body>
 </html>
