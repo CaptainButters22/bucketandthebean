@@ -147,11 +147,15 @@
         const targetCenterX = navRect.left + navRect.width / 2;
         // base left to center the button under nav center
         const baseLeft = targetCenterX - wrapperRect.left - (button.offsetWidth / 2);
-        // shift by half the button width (per request)
-        const shift = button.offsetWidth / 2;
-        const left = baseLeft + shift;
+        // clamp base position inside wrapper
+        const baseClamped = Math.max(0, Math.min(baseLeft, wrapperRect.width - button.offsetWidth));
+        // currentLeft: prefer current style if present, otherwise use baseClamped
+        const currentLeft = parseFloat(button.style.left) || baseClamped;
+        // move the button by half its total width from its current position
+        const delta = button.offsetWidth / 2;
+        const newLeft = currentLeft + delta;
         // clamp inside wrapper
-        const clamped = Math.max(0, Math.min(left, wrapperRect.width - button.offsetWidth));
+        const clamped = Math.max(0, Math.min(newLeft, wrapperRect.width - button.offsetWidth));
         button.style.left = clamped + 'px';
       }
       window.addEventListener('load', alignMenuButton);
