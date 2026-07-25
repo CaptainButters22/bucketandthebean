@@ -28,9 +28,9 @@
       .store-side { width: 220px; height: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); position: absolute; top: 50%; transform: translateY(-50%); }
       /* menu images (baked-goods, coffee-machine) — same size by default; ~1.25x */
       .store-side.baked { left: 0; width: 206px; }
-      /* push coffee machine further right for visual balance */
-      .store-side.machine { right: -80px; width: 206px; }
-      .store-button-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
+      /* push coffee machine further right for visual balance (moved again) */
+      .store-side.machine { right: -240px; width: 206px; }
+      .store-button-center { position: absolute; top: 50%; left: calc(50% + 80px); transform: translate(-50%, -50%); z-index: 2; }
       /* Button styles to keep primary consistent */
       .btn { display: inline-block; text-decoration: none; border: none; cursor: pointer; font-weight: 600; }
       .btn-primary { background: #5b3a30; color: #fff; padding: 12px 24px; border-radius: 8px; }
