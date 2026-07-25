@@ -1,4 +1,10 @@
 # Bucket and the Bean
+# cd /c/Users/danie/coffee-shop
+# git add .
+# git commit -m "Update menu fetch to use JoeCoffee proxy and render remote items"
+# git push
+#
+#
 
 A simple static coffee shop website built with HTML, CSS, and JavaScript.
 

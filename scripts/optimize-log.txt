@@ -1,0 +1,71 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260725135952
+Username: FREDRIK\danie
+RunAs User: FREDRIK\danie
+Configuration Name: 
+Machine: FREDRIK (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 19416
+PSVersion: 5.1.26100.8875
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8875
+BuildVersion: 10.0.26100.8875
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is .\scripts\optimize-log.txt
+PS C:\Users\danie\coffee-shop> & .\scripts\optimize-images.ps1 -Verbose\
+& : File C:\Users\danie\coffee-shop\scripts\optimize-images.ps1 cannot be loaded because running scripts is disabled on 
+this system. For more information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.
+At line:1 char:3
++ & .\scripts\optimize-images.ps1 -Verbose\
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : SecurityError: (:) [], PSSecurityException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+& : File
+C:\Users\danie\coffee-shop\scripts\optimize-images.ps1 cannot
+be loaded because running scripts is disabled on this system.
+For more information, see about_Execution_Policies at
+https:/go.microsoft.com/fwlink/?LinkID=135170.
+At line:1 char:3
++ & .\scripts\optimize-images.ps1 -Verbose\
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : SecurityError: (:) [], PSSecurit
+   yException
+    + FullyQualifiedErrorId : UnauthorizedAccess
+PS C:\Users\danie\coffee-shop> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force & .\scripts\optimize-images.ps1 -Verbose
+At line:1 char:67
++ ... ecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force & .\scrip ...
++                                                                 ~
+The ampersand (&) character is not allowed. The & operator is reserved for future use; wrap an ampersand in double quotation marks ("&") to pass it as part of a string.
+At line:1 char:67
++ ... ecutionPolicy -Scope Process -ExecutionPolicy Bypass
+-Force & .\scrip ...
++
+   ~
+The ampersand (&) character is not allowed. The & operator is
+reserved for future use; wrap an ampersand in double quotation
+marks ("&") to pass it as part of a string.
+    + CategoryInfo          : ParserError: (:) [], ParentConta
+   insErrorRecordException
+    + FullyQualifiedErrorId : AmpersandNotAllowed
+
+PS C:\Users\danie\coffee-shop> •Unblock-File .\scripts\optimize-images.ps1 & .\scripts\optimize-images.ps1 -Verbose
+At line:1 char:45
++ •Unblock-File .\scripts\optimize-images.ps1 & .\scripts\optimize-imag ...
++                                             ~
+The ampersand (&) character is not allowed. The & operator is reserved for future use; wrap an ampersand in double quotation marks ("&") to pass it as part of a string.
+At line:1 char:45
++ •Unblock-File .\scripts\optimize-images.ps1 &
+.\scripts\optimize-imag ...
++                                             ~
+The ampersand (&) character is not allowed. The & operator is
+reserved for future use; wrap an ampersand in double quotation
+marks ("&") to pass it as part of a string.
+    + CategoryInfo          : ParserError: (:) [], ParentConta
+   insErrorRecordException
+    + FullyQualifiedErrorId : AmpersandNotAllowed
+
