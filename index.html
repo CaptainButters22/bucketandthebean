@@ -145,7 +145,11 @@
         const wrapperRect = wrapper.getBoundingClientRect();
         // center x of nav menu relative to wrapper
         const targetCenterX = navRect.left + navRect.width / 2;
-        const left = targetCenterX - wrapperRect.left - (button.offsetWidth / 2);
+        // base left to center the button under nav center
+        const baseLeft = targetCenterX - wrapperRect.left - (button.offsetWidth / 2);
+        // shift by half the button width (per request)
+        const shift = button.offsetWidth / 2;
+        const left = baseLeft + shift;
         // clamp inside wrapper
         const clamped = Math.max(0, Math.min(left, wrapperRect.width - button.offsetWidth));
         button.style.left = clamped + 'px';
