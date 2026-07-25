@@ -47,6 +47,17 @@
     /* Subtle legal/terms area that blends with footer */
     .site-legal { font-size: 12px; color: #707070; opacity: 0.9; text-align: center; padding: 8px 12px 4px; margin-top: 6px; }
     .site-legal a { color: inherit; text-decoration: underline; opacity: 0.85; }
+    /* Calendar styles */
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; max-width: 920px; margin: 0 auto; }
+    .calendar-grid .day-name { font-weight:700; text-align:center; padding:6px 4px; color:#5b3a30; }
+    .calendar-cell { min-height:80px; background:#fff; border-radius:6px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,0.04); position:relative; }
+    .calendar-cell.inactive { opacity:0.45; }
+    .calendar-cell .date-num { font-weight:600; color:#3b2f2f; }
+    .event-dot { display:block; width:8px; height:8px; background:#5b3a30; border-radius:50%; margin-top:8px; }
+    .calendar-tooltip { position:fixed; z-index:9999; background:#fff; color:#222; border:1px solid rgba(0,0,0,0.08); padding:10px; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); display:none; max-width:320px; }
+    .calendar-tooltip h4 { margin:0 0 6px 0; font-size:14px; }
+    .calendar-tooltip ul { margin:0; padding:0; list-style:none; font-size:13px; }
+    .calendar-tooltip li { margin-bottom:6px; }
     </style>
   <!-- noop patch: trigger commit -->
   </head>
@@ -98,31 +109,19 @@
 
       <section id="events" class="events-section">
         <div class="section-header">
-          <p class="eyebrow">Event Tab</p>
-          <h2>Events</h2>
-          <p>Join us for coffee tastings, game days, and community gatherings.</p>
+          <p class="eyebrow">Event Calendar</p>
+          <h2>Events Calendar</h2>
+          <p>View events for each day. Hover a date to see details and times.</p>
         </div>
 
-        <div class="event-list">
-          <article class="event-card">
-            <h3>Muffins & Mahjong</h3>
-            <p>Saturday, July 25 · 9:00 AM &ndash; 11:00 AM</p>
-            <p>A game day for coffee lovers who want to enjoy muffins and a round of Mahjong.</p>
-            <button>RSVP</button>
-          </article>
-          <article class="event-card">
-            <h3>Beans & Skeins</h3>
-            <p>Saturday, August 2 · 2:00 PM &ndash; 4:00 PM</p>
-            <p>A crafting night where guests sip coffee while working on a craft of their choice.</p>
-            <button>RSVP</button>
-          </article>
-          <article class="event-card">
-            <h3>Tabletop Tuesday</h3>
-            <p>Every Tuesday · 3:30 PM &ndash; 6:30 PM</p>
-            <p>Bring your board games and meet local players. Snack and drink specials available.</p>
-            <button>RSVP</button>
-          </article>
+        <div class="calendar-controls" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0;">
+          <button id="prev-month" aria-label="Previous month">‹</button>
+          <div id="month-label" style="font-weight:600"></div>
+          <button id="next-month" aria-label="Next month">›</button>
         </div>
+
+        <div id="calendar" class="calendar-grid" role="grid" aria-label="Events calendar"></div>
+        <div id="tooltip" class="calendar-tooltip" aria-hidden="true"></div>
       </section>
 
       <section id="updates" class="events-section">
@@ -186,6 +185,125 @@
       window.addEventListener('load', positionMenuButtonBetweenHeroButtons);
       window.addEventListener('resize', positionMenuButtonBetweenHeroButtons);
       new MutationObserver(positionMenuButtonBetweenHeroButtons).observe(document.body, { childList: true, subtree: true });
+    </script>
+    <script>
+      // Simple calendar renderer with hover tooltip for events
+      (function(){
+        const events = [
+          { date: '2026-07-25', title: 'Muffins & Mahjong', time: '9:00 AM – 11:00 AM', desc: 'A game day for coffee lovers who want to enjoy muffins and a round of Mahjong.' },
+          { date: '2026-08-02', title: 'Beans & Skeins', time: '2:00 PM – 4:00 PM', desc: 'A crafting night where guests sip coffee while working on a craft of their choice.' }
+        ];
+
+        // Add recurring Tabletop Tuesday for current month
+        function addRecurringTuesdays(year, month) {
+          const first = new Date(year, month, 1);
+          const last = new Date(year, month + 1, 0);
+          for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+            if (d.getDay() === 2) { // Tuesday
+              events.push({ date: d.toISOString().slice(0,10), title: 'Tabletop Tuesday', time: '3:30 PM – 6:30 PM', desc: 'Bring your board games and meet local players.' });
+            }
+          }
+        }
+
+        const tooltip = document.getElementById('tooltip');
+
+        function renderCalendar(year, month) {
+          const cal = document.getElementById('calendar');
+          cal.innerHTML = '';
+          const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          dayNames.forEach(n => { const el = document.createElement('div'); el.className='day-name'; el.textContent = n; cal.appendChild(el); });
+
+          const firstDay = new Date(year, month, 1);
+          const startOffset = firstDay.getDay();
+          const daysInMonth = new Date(year, month+1, 0).getDate();
+
+          // previous month's tail
+          const prevDays = startOffset;
+          const prevMonth = new Date(year, month, 0);
+          const prevTotal = prevMonth.getDate();
+
+          // generate cells for 6 rows (42 cells)
+          for (let i=0;i<42;i++){
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            let dayNumber = i - prevDays + 1;
+            let cellDate;
+            if (i < prevDays) {
+              // previous month
+              cell.classList.add('inactive');
+              const d = prevTotal - (prevDays - i -1);
+              cellDate = new Date(year, month-1, d);
+            } else if (dayNumber > daysInMonth) {
+              // next month
+              cell.classList.add('inactive');
+              const d = dayNumber - daysInMonth;
+              cellDate = new Date(year, month+1, d);
+            } else {
+              cellDate = new Date(year, month, dayNumber);
+            }
+
+            const dateNum = document.createElement('div');
+            dateNum.className = 'date-num';
+            dateNum.textContent = cellDate.getDate();
+            cell.appendChild(dateNum);
+
+            const iso = cellDate.toISOString().slice(0,10);
+            const todaysEvents = events.filter(e => e.date === iso);
+            if (todaysEvents.length) {
+              const dot = document.createElement('span'); dot.className='event-dot'; cell.appendChild(dot);
+              cell.dataset.events = JSON.stringify(todaysEvents);
+              cell.addEventListener('mouseenter', (ev)=> showTooltip(ev.currentTarget, todaysEvents));
+              cell.addEventListener('mouseleave', hideTooltip);
+            }
+
+            cal.appendChild(cell);
+          }
+          const monthLabel = document.getElementById('month-label');
+          monthLabel.textContent = new Date(year, month, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        }
+
+        function showTooltip(cell, evts) {
+          if (!evts || !evts.length) return;
+          tooltip.innerHTML = '<h4>' + evts.length + ' event' + (evts.length>1?'s':'') + '</h4>';
+          const ul = document.createElement('ul');
+          evts.forEach(e=>{
+            const li = document.createElement('li');
+            li.innerHTML = '<strong>' + e.title + '</strong><br><small>' + e.time + '</small><div>' + e.desc + '</div>';
+            ul.appendChild(li);
+          });
+          tooltip.appendChild(ul);
+          tooltip.style.display = 'block';
+          // position near cell
+          const rect = cell.getBoundingClientRect();
+          const top = rect.bottom + window.scrollY + 8;
+          let left = rect.left + window.scrollX;
+          // keep inside viewport
+          left = Math.min(left, window.scrollX + window.innerWidth - tooltip.offsetWidth - 12);
+          tooltip.style.left = left + 'px';
+          tooltip.style.top = top + 'px';
+        }
+
+        function hideTooltip(){ tooltip.style.display='none'; }
+
+        // initialize
+        const now = new Date();
+        let curYear = now.getFullYear();
+        let curMonth = now.getMonth();
+        addRecurringTuesdays(curYear, curMonth);
+        renderCalendar(curYear, curMonth);
+
+        document.getElementById('prev-month').addEventListener('click',()=>{
+          curMonth--; if (curMonth<0){ curMonth=11; curYear--; }
+          // rebuild events for recurring Tuesdays for new month
+          addRecurringTuesdays(curYear, curMonth);
+          renderCalendar(curYear, curMonth);
+        });
+        document.getElementById('next-month').addEventListener('click',()=>{
+          curMonth++; if (curMonth>11){ curMonth=0; curYear++; }
+          addRecurringTuesdays(curYear, curMonth);
+          renderCalendar(curYear, curMonth);
+        });
+      })();
     </script>
   </body>
 </html>
