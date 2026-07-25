@@ -14,6 +14,12 @@
       .layout { display: flex; align-items: start; justify-content: center; gap: 20px; padding: 24px; }
       .side-image { width: 160px; height: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
       .content { max-width: 800px; text-align: center; }
+      .main-logo { display: block; margin: 0 auto 12px; width: 220px; height: auto; }
+      .hero { position: relative; background-size: cover; background-position: center; padding: 48px 20px; border-radius: 8px; color: #fff; }
+      .hero::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0.35); border-radius: 8px; }
+      .hero .inner { position: relative; z-index: 1; }
+      .store-layout { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 18px; }
+      .store-side { width: 120px; height: auto; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
       @media (max-width: 800px) { .layout { flex-direction: column; align-items: center; } .side-image { width: 220px; } }
     </style>
   </head>
@@ -33,18 +39,19 @@
 
     <main>
       <section id="welcome" class="welcome-section">
-        <div class="layout">
-          <img class="side-image" src="/Images/CoffeeBeans.JPG" alt="Coffee beans">
-          <div class="content">
-            <p class="eyebrow">Welcome to Bucket and the Bean</p>
-            <h2>Hot Coffee and Warm Conversation</h2>
-            <p>Craft coffee, fresh pastries, and a cozy place to gather. Explore our menu and upcoming events below.</p>
-            <div class="welcome-actions">
-              <a class="btn btn-primary" href="#store">Explore Menu</a>
-              <a class="btn btn-secondary" href="#events">See Events</a>
+        <div class="content">
+          <img class="main-logo" src="/Images/Main%20Logo.jpg" alt="Bucket and the Bean logo">
+          <div class="hero" style="background-image: url('/Images/CoffeeBeans.JPG')">
+            <div class="inner">
+              <p class="eyebrow">Welcome to Bucket and the Bean</p>
+              <h2>Hot Coffee and Warm Conversation</h2>
+              <p>Craft coffee, fresh pastries, and a cozy place to gather. Explore our menu and upcoming events below.</p>
+              <div class="welcome-actions">
+                <a class="btn btn-primary" href="#store">Explore Menu</a>
+                <a class="btn btn-secondary" href="#events">See Events</a>
+              </div>
             </div>
           </div>
-          <img class="side-image" src="/Images/Baked%20Goods.jpg" alt="Baked goods">
         </div>
       </section>
 
@@ -55,8 +62,12 @@
           <p>Click the button below to open the live JoeCoffee menu for Bucket and the Bean.</p>
         </div>
 
-        <div class="menu-grid" style="display: flex; justify-content: center;">
-          <a class="btn btn-primary" href="https://shop.joe.coffee/explore/stores/84c55c35-834f-4b94-ad0c-ccea76163b36" target="_blank" rel="noopener noreferrer">Click to see menu</a>
+        <div class="menu-grid">
+          <div class="store-layout">
+            <img class="store-side" src="/Images/Baked%20Goods.jpg" alt="Baked goods">
+            <a class="btn btn-primary" href="https://shop.joe.coffee/explore/stores/84c55c35-834f-4b94-ad0c-ccea76163b36" target="_blank" rel="noopener noreferrer">Click to see menu</a>
+            <img class="store-side" src="/Images/CoffeeMachine.jpg" alt="Coffee machine">
+          </div>
         </div>
       </section>
 
