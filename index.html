@@ -140,5 +140,42 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+      // Position the store/menu button between the two hero action buttons
+      function positionMenuButtonBetweenHeroButtons() {
+        const wrapper = document.querySelector('.store-wrapper');
+        const button = document.querySelector('.store-button-center');
+        const heroActions = document.querySelector('.welcome-actions');
+        if (!wrapper || !button) return;
+
+        // Find the two action buttons in the hero. If not present, center fallback.
+        let btnA = heroActions ? heroActions.querySelector('.btn-primary') : null;
+        let btnB = heroActions ? heroActions.querySelector('.btn-secondary') : null;
+
+        const wrapperRect = wrapper.getBoundingClientRect();
+        let targetCenterX;
+
+        if (btnA && btnB) {
+          const a = btnA.getBoundingClientRect();
+          const b = btnB.getBoundingClientRect();
+          const aCenter = a.left + a.width / 2;
+          const bCenter = b.left + b.width / 2;
+          targetCenterX = (aCenter + bCenter) / 2;
+        } else {
+          // fallback: center of wrapper
+          const winCenter = window.innerWidth / 2 + window.scrollX;
+          targetCenterX = winCenter;
+        }
+
+        // compute left relative to wrapper
+        const left = targetCenterX - wrapperRect.left - (button.offsetWidth / 2);
+        const clamped = Math.max(0, Math.min(left, wrapperRect.width - button.offsetWidth));
+        button.style.left = clamped + 'px';
+      }
+
+      window.addEventListener('load', positionMenuButtonBetweenHeroButtons);
+      window.addEventListener('resize', positionMenuButtonBetweenHeroButtons);
+      new MutationObserver(positionMenuButtonBetweenHeroButtons).observe(document.body, { childList: true, subtree: true });
+    </script>
   </body>
 </html>
