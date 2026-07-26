@@ -7,6 +7,7 @@
     <meta name="description" content="Bucket and the Bean coffee shop - menu, events, and local community space." />
     <link rel="canonical" href="https://bucketandthebean.com/" />
     <link rel="stylesheet" href="styles.css" />
+    <meta name="form-endpoint" content="" />
     <link rel="icon" href="/Images/main-logo.jpg" type="image/jpeg" />
     <style>
       /* Inline styles for header layout and side images */
@@ -314,6 +315,57 @@
         window.addEventListener('resize', sync);
         // run once now
         sync();
+      })();
+    </script>
+    <script>document.getElementById('legal-year').textContent = new Date().getFullYear();</script>
+    <script>
+      // Contact form submit handler: POST to configured endpoint if present, otherwise open mail client.
+      (function(){
+        const meta = document.querySelector('meta[name="form-endpoint"]');
+        const endpoint = meta ? meta.content.trim() : '';
+        const form = document.getElementById('update-form');
+        if (!form) return;
+        const emailInput = document.getElementById('contact-email');
+        const msgInput = document.getElementById('update-message');
+
+        function showMessage(text){
+          // lightweight feedback; replace with custom UI as desired
+          alert(text);
+        }
+
+        form.addEventListener('submit', async function(e){
+          e.preventDefault();
+          const email = (emailInput && emailInput.value || '').trim();
+          const message = (msgInput && msgInput.value || '').trim();
+          if (!email || !message) { showMessage('Please provide your email and a message.'); return; }
+
+          if (endpoint) {
+            // Try to POST to provided form endpoint (e.g., Formspree). Expect CORS enabled.
+            try {
+              const data = new FormData();
+              data.append('email', email);
+              data.append('message', message);
+              data.append('_subject', 'Website contact: ' + email);
+              const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
+              if (res.ok) {
+                showMessage('Message sent — thank you!');
+                form.reset();
+              } else {
+                const text = await res.text();
+                console.error('Form submit error', res.status, text);
+                showMessage('There was a problem sending your message. Please try again or email hello@bucketandthebean.com');
+              }
+            } catch (err) {
+              console.error(err);
+              showMessage('There was a problem sending your message. Please try again or email hello@bucketandthebean.com');
+            }
+          } else {
+            // Fallback: open user's mail client using mailto (pre-fill subject and body)
+            const subject = encodeURIComponent('Website contact from ' + email);
+            const body = encodeURIComponent('From: ' + email + '\n\n' + message);
+            window.location.href = 'mailto:hello@bucketandthebean.com?subject=' + subject + '&body=' + body;
+          }
+        });
       })();
     </script>
   </body>
