@@ -91,19 +91,22 @@
         </div>
       </section>
 
-      <section id="store" class="store-section">
+      <!-- removed Store/Menu section; calendar placed below hero -->
+      <section id="events" class="events-section">
         <div class="section-header">
-          <h2>See Menu and Order Ahead</h2>
+          <p class="eyebrow">Event Calendar</p>
+          <h2>Events Calendar</h2>
+          <p>View events for each day. Hover a date to see details and times.</p>
         </div>
 
-        <div class="menu-grid">
-          <div class="store-wrapper" style="margin-top: -36px;">
-            <img class="store-side baked" src="/Images/baked-goods.jpg" alt="Baked goods">
-            <!-- copy of the hero 'Explore Menu' button placed here -->
-            <a id="menu-btn" class="btn btn-primary store-button-center" href="https://shop.joe.coffee/explore/stores/84c55c35-834f-4b94-ad0c-ccea76163b36" target="_blank" rel="noopener noreferrer" role="button" aria-label="Open menu in new tab">Explore Menu</a>
-            <img class="store-side machine" src="/Images/coffee-machine.jpg" alt="Coffee machine">
-          </div>
+        <div class="calendar-controls" style="display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0;">
+          <button id="prev-month" aria-label="Previous month">‹</button>
+          <div id="month-label" style="font-weight:600"></div>
+          <button id="next-month" aria-label="Next month">›</button>
         </div>
+
+        <div id="calendar" class="calendar-grid" role="grid" aria-label="Events calendar"></div>
+        <div id="tooltip" class="calendar-tooltip" aria-hidden="true"></div>
       </section>
 
 
