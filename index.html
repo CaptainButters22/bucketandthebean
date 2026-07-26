@@ -138,7 +138,7 @@
 
             <label for="update-message">Your message</label>
             <textarea id="update-message" rows="5" placeholder="Tell us your question or request..." required></textarea>
-            <button type="submit" class="btn btn-primary">Send message</button>
+            <button type="button" id="send-btn" class="btn btn-primary">Send message</button>
           </form>
         </div>
       </section>
@@ -372,7 +372,8 @@
           alert(text);
         }
 
-        form.addEventListener('submit', async function(e){
+        const sendBtn = document.getElementById('send-btn');
+        async function handleSend(e){
           e.preventDefault();
           const email = (emailInput && emailInput.value || '').trim();
           const message = (msgInput && msgInput.value || '').trim();
@@ -417,7 +418,8 @@
               showMessage('No sending endpoint configured and clipboard copy failed. Please email hello@bucketandthebean.com manually.');
             }
           }
-        });
+        }
+        if (sendBtn) sendBtn.addEventListener('click', handleSend);
       })();
     </script>
   </body>
