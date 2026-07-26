@@ -59,6 +59,11 @@
     .calendar-tooltip h4 { margin:0 0 6px 0; font-size:14px; }
     .calendar-tooltip ul { margin:0; padding:0; list-style:none; font-size:13px; }
     .calendar-tooltip li { margin-bottom:6px; }
+    /* Contact reason bubbles */
+    .reason-bubbles { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+    .reason-bubbles input { display:none; }
+    .reason-bubbles label { padding:8px 12px; border-radius:999px; border:1px solid #d0cfcf; cursor:pointer; background:#fff; color:#3b2f2f; }
+    .reason-bubbles input:checked + label { background:#5b3a30; color:#fff; border-color:transparent; }
     /* Modal for day-click event list */
     .calendar-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); z-index: 10000; }
     .calendar-modal.active { display: flex; }
@@ -133,6 +138,26 @@
         </div>
         <div class="update-form-container">
           <form id="update-form">
+            <div>
+              <h3>Reason for Contact</h3>
+              <div class="reason-bubbles" role="radiogroup" aria-label="Reason for contact">
+                <input type="radio" id="reason-gallery" name="reason" value="Gallery submission">
+                <label for="reason-gallery">Gallery submission</label>
+
+                <input type="radio" id="reason-questions" name="reason" value="Questions/Suggestions">
+                <label for="reason-questions">Questions/Suggestions</label>
+
+                <input type="radio" id="reason-event" name="reason" value="Event Request">
+                <label for="reason-event">Event Request</label>
+
+                <input type="radio" id="reason-hiring" name="reason" value="Hiring">
+                <label for="reason-hiring">Hiring</label>
+
+                <input type="radio" id="reason-misc" name="reason" value="Misc">
+                <label for="reason-misc">Misc</label>
+              </div>
+            </div>
+
             <label for="contact-email">Your email</label>
             <input id="contact-email" type="email" placeholder="you@example.com" required />
 
@@ -194,18 +219,26 @@
     <script>
       // Simple calendar renderer with hover tooltip for events
       (function(){
-        const events = [
-          { date: '2026-07-25', title: 'Muffins & Mahjong', time: '9:00 AM – 11:00 AM', desc: 'A game day for coffee lovers who want to enjoy muffins and a round of Mahjong.' },
-          { date: '2026-08-02', title: 'Beans & Skeins', time: '2:00 PM – 4:00 PM', desc: 'A crafting night where guests sip coffee while working on a craft of their choice.' }
-        ];
+        // seed events list (we'll add recurring events programmatically)
+        const events = [];
 
-        // Add recurring Tabletop Tuesday for current month
-        function addRecurringTuesdays(year, month) {
+        // Add recurring events for a given month
+        // Muffins & Mahjong -> Every Thursday, 9:00 AM - 11:00 AM
+        // Beans & Skeins -> Every Wednesday, 2:00 PM - 4:00 PM
+        // Tabletop Tuesday (existing) -> Every Tuesday, 3:30 PM - 6:30 PM
+        function addRecurringEvents(year, month) {
           const first = new Date(year, month, 1);
           const last = new Date(year, month + 1, 0);
           for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
-            if (d.getDay() === 2) { // Tuesday
+            const day = d.getDay();
+            if (day === 2) { // Tuesday
               events.push({ date: d.toISOString().slice(0,10), title: 'Tabletop Tuesday', time: '3:30 PM – 6:30 PM', desc: 'Bring your board games and meet local players.' });
+            }
+            if (day === 3) { // Wednesday
+              events.push({ date: d.toISOString().slice(0,10), title: 'Beans & Skeins', time: '2:00 PM – 4:00 PM', desc: 'A crafting night where guests sip coffee while working on a craft of their choice.' });
+            }
+            if (day === 4) { // Thursday
+              events.push({ date: d.toISOString().slice(0,10), title: 'Muffins & Mahjong', time: '9:00 AM – 11:00 AM', desc: 'A game day for coffee lovers who want to enjoy muffins and a round of Mahjong.' });
             }
           }
         }
@@ -320,18 +353,18 @@
         const now = new Date();
         let curYear = now.getFullYear();
         let curMonth = now.getMonth();
-        addRecurringTuesdays(curYear, curMonth);
+        addRecurringEvents(curYear, curMonth);
         renderCalendar(curYear, curMonth);
 
         document.getElementById('prev-month').addEventListener('click',()=>{
           curMonth--; if (curMonth<0){ curMonth=11; curYear--; }
-          // rebuild events for recurring Tuesdays for new month
-          addRecurringTuesdays(curYear, curMonth);
+          // rebuild recurring events for new month
+          addRecurringEvents(curYear, curMonth);
           renderCalendar(curYear, curMonth);
         });
         document.getElementById('next-month').addEventListener('click',()=>{
           curMonth++; if (curMonth>11){ curMonth=0; curYear++; }
-          addRecurringTuesdays(curYear, curMonth);
+          addRecurringEvents(curYear, curMonth);
           renderCalendar(curYear, curMonth);
         });
       })();
@@ -380,6 +413,8 @@
           e.preventDefault();
           const email = (emailInput && emailInput.value || '').trim();
           const message = (msgInput && msgInput.value || '').trim();
+          const reasonInput = document.querySelector('input[name="reason"]:checked');
+          const reason = reasonInput ? reasonInput.value : '';
           if (!email || !message) { showMessage('Please provide your email and a message.'); return; }
 
           if (endpoint) {
@@ -388,7 +423,8 @@
               const data = new FormData();
               data.append('email', email);
               data.append('message', message);
-              data.append('_subject', 'Website contact: ' + email);
+              data.append('reason', reason);
+              data.append('_subject', 'Website contact: ' + email + (reason? ' ('+reason+')':''));
               const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
               if (res.ok) {
                 showMessage('Message sent — thank you!');
@@ -404,7 +440,7 @@
             }
           } else {
             // Fallback: no server endpoint configured. Copy message to clipboard and let user know.
-            const payload = 'From: ' + email + "\n\n" + message;
+            const payload = 'From: ' + email + (reason? '\nReason: '+reason+'\n\n':'\n\n') + message;
             try {
               if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(payload);
