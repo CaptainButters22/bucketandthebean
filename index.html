@@ -364,6 +364,9 @@
         const endpoint = meta ? meta.content.trim() : '';
         const form = document.getElementById('update-form');
         if (!form) return;
+        // Prevent any native form submit/navigation (extra safety for Edge)
+        form.setAttribute('action', 'javascript:void(0)');
+        form.addEventListener('submit', function(e){ e.preventDefault(); });
         const emailInput = document.getElementById('contact-email');
         const msgInput = document.getElementById('update-message');
 
