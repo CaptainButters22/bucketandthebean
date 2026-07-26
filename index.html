@@ -59,6 +59,12 @@
     .calendar-tooltip h4 { margin:0 0 6px 0; font-size:14px; }
     .calendar-tooltip ul { margin:0; padding:0; list-style:none; font-size:13px; }
     .calendar-tooltip li { margin-bottom:6px; }
+    /* Modal for day-click event list */
+    .calendar-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); z-index: 10000; }
+    .calendar-modal.active { display: flex; }
+    .calendar-modal-content { background: #fff; color:#222; padding: 16px; border-radius: 8px; max-width: 520px; width: 92%; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
+    .calendar-modal-content h3 { margin: 0 0 8px 0; }
+    .calendar-modal-content .close-btn { position: absolute; right: 12px; top: 8px; background: transparent; border: none; font-size: 20px; cursor: pointer; }
     </style>
   <!-- noop patch: trigger commit -->
   </head>
@@ -110,6 +116,14 @@
 
         <div id="calendar" class="calendar-grid" role="grid" aria-label="Events calendar"></div>
         <div id="tooltip" class="calendar-tooltip" aria-hidden="true"></div>
+        <!-- Day modal -->
+        <div id="day-modal" class="calendar-modal" aria-hidden="true">
+          <div class="calendar-modal-content" role="dialog" aria-modal="true">
+            <button class="close-btn" aria-label="Close">×</button>
+            <h3 id="modal-date">Events</h3>
+            <ul id="modal-events" style="margin-top:8px;"></ul>
+          </div>
+        </div>
       </section>
 
       <section id="updates" class="events-section">
@@ -245,12 +259,38 @@
               cell.dataset.events = JSON.stringify(todaysEvents);
               cell.addEventListener('mouseenter', (ev)=> showTooltip(ev.currentTarget, todaysEvents));
               cell.addEventListener('mouseleave', hideTooltip);
+              cell.addEventListener('click', (ev)=> { ev.stopPropagation(); showDayModal(todaysEvents, cellDate); });
             }
 
             cal.appendChild(cell);
           }
           const monthLabel = document.getElementById('month-label');
           monthLabel.textContent = new Date(year, month, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        }
+
+        // Modal for click -> show full event list
+        const dayModal = document.getElementById('day-modal');
+        const modalDate = document.getElementById('modal-date');
+        const modalEvents = document.getElementById('modal-events');
+        function showDayModal(evts, dateObj){
+          if (!dayModal) return;
+          modalDate.textContent = new Date(dateObj).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+          modalEvents.innerHTML = '';
+          evts.forEach(e=>{
+            const li = document.createElement('li');
+            li.innerHTML = '<strong>' + e.title + '</strong> <br><small>' + e.time + '</small><div>' + e.desc + '</div>';
+            modalEvents.appendChild(li);
+          });
+          dayModal.classList.add('active');
+          dayModal.setAttribute('aria-hidden','false');
+        }
+        function hideDayModal(){ if (!dayModal) return; dayModal.classList.remove('active'); dayModal.setAttribute('aria-hidden','true'); }
+
+        // close modal when clicking overlay or close button
+        if (dayModal) {
+          dayModal.addEventListener('click', function(ev){ if (ev.target === dayModal) hideDayModal(); });
+          const closeBtn = dayModal.querySelector('.close-btn'); if (closeBtn) closeBtn.addEventListener('click', hideDayModal);
+          document.addEventListener('keydown', function(ev){ if (ev.key==='Escape') hideDayModal(); });
         }
 
         function showTooltip(cell, evts) {
@@ -359,10 +399,23 @@
               showMessage('There was a problem sending your message. Please try again or email hello@bucketandthebean.com');
             }
           } else {
-            // Fallback: open user's mail client using mailto (pre-fill subject and body)
-            const subject = encodeURIComponent('Website contact from ' + email);
-            const body = encodeURIComponent('From: ' + email + '\n\n' + message);
-            window.location.href = 'mailto:hello@bucketandthebean.com?subject=' + subject + '&body=' + body;
+            // Fallback: no server endpoint configured. Copy message to clipboard and let user know.
+            const payload = 'From: ' + email + "\n\n" + message;
+            try {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(payload);
+                showMessage('No sending endpoint configured. Message copied to clipboard. Please paste into your email to hello@bucketandthebean.com or configure a form endpoint.');
+                form.reset();
+              } else {
+                // fallback copy
+                const ta = document.createElement('textarea'); ta.value = payload; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                showMessage('No sending endpoint configured. Message copied to clipboard. Please paste into your email to hello@bucketandthebean.com or configure a form endpoint.');
+                form.reset();
+              }
+            } catch (err) {
+              console.error('Clipboard copy failed', err);
+              showMessage('No sending endpoint configured and clipboard copy failed. Please email hello@bucketandthebean.com manually.');
+            }
           }
         });
       })();
