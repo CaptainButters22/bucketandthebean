@@ -1,0 +1,4 @@
+cd /c/Users/danie/coffee-shop
+git add .
+git commit -m "Update menu fetch to use JoeCoffee proxy and render remote items"
+git push

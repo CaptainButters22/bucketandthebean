@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Closeout Checklist — Bucket and the Bean</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding:24px; color:#2f2f2f; }
+    .container{ max-width:760px; margin:0 auto; }
+    h1{ color:#3b2f2f; }
+    form{ background:#fff; padding:16px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .fields{ display:grid; grid-template-columns:1fr 140px; gap:12px; align-items:center; }
+    label{ font-weight:600; font-size:0.95rem; }
+    .checklist{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+    .check-item{ display:flex; gap:8px; align-items:center; }
+    /* bubble-wave style for tasks */
+    .bubble-wave{ display:flex; gap:8px; flex-wrap:wrap; }
+    .bubble-wave input{ display:none; }
+    .task-bubble{ display:inline-flex; align-items:center; gap:10px; padding:8px 12px; border-radius:999px; background:#fff; border:1px solid #ddd; cursor:pointer; min-width:110px; justify-content:space-between; }
+    .task-bubble .status{ width:18px; height:18px; border-radius:4px; background:#f1f1f1; display:inline-block; }
+    .bubble-wave input:checked + label.task-bubble{ background:#5b3a30; color:#fff; border-color:transparent; }
+    textarea{ width:100%; min-height:84px; }
+    .btn{ padding:10px 16px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+    .btn-primary{ background:#5b3a30; color:#fff; }
+    .success{ background:#e6f6ea; border:1px solid #cdeac8; color:#2a6b36; padding:10px; border-radius:6px; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/">← Back</a>
+    <h1>Opening & Closing Reports</h1>
+    <p>Use the passcode below, then tap each item when completed. Opening report is above; closing report is below.</p>
+
+    <div style="margin:12px 0 18px;">
+      <label for="passcode"><strong>Passcode</strong></label><br />
+      <input id="passcode" type="password" placeholder="Enter passcode" style="padding:8px; border-radius:6px; border:1px solid #d8d8d8; width:220px;" />
+    </div>
+
+    <!-- Opening report: just bubbles (with submit) -->
+    <section aria-labelledby="opening-title">
+      <h2 id="opening-title">Opening Report</h2>
+      <form id="opening-form">
+        <div class="bubble-wave" role="group" aria-label="Opening tasks">
+          <!-- tasks -->
+          <input type="checkbox" id="op-curtains" name="op_task" value="Curtains"><label for="op-curtains" class="task-bubble"><span class="name">Curtains</span><span class="status"></span></label>
+          <input type="checkbox" id="op-outdoor" name="op_task" value="Outdoor chairs"><label for="op-outdoor" class="task-bubble"><span class="name">Outdoor chairs</span><span class="status"></span></label>
+          <input type="checkbox" id="op-espresso" name="op_task" value="Espresso Machines"><label for="op-espresso" class="task-bubble"><span class="name">Espresso Machines</span><span class="status"></span></label>
+          <input type="checkbox" id="op-count" name="op_task" value="Count Money"><label for="op-count" class="task-bubble"><span class="name">Count Money</span><span class="status"></span></label>
+          <input type="checkbox" id="op-speaker" name="op_task" value="Turn off Speaker"><label for="op-speaker" class="task-bubble"><span class="name">Turn off Speaker</span><span class="status"></span></label>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+          <button class="btn btn-primary" type="button" id="opening-submit">Submit opening report</button>
+          <div id="opening-status" aria-live="polite"></div>
+        </div>
+      </form>
+    </section>
+
+    <hr style="margin:18px 0" />
+
+    <!-- Closing report -->
+    <section aria-labelledby="closing-title">
+      <h2 id="closing-title">Closing Report</h2>
+      <form id="closing-form">
+        <div class="bubble-wave" role="group" aria-label="Closing tasks">
+          <input type="checkbox" id="cl-curtains" name="cl_task" value="Curtains"><label for="cl-curtains" class="task-bubble"><span class="name">Curtains</span><span class="status"></span></label>
+          <input type="checkbox" id="cl-outdoor" name="cl_task" value="Outdoor chairs"><label for="cl-outdoor" class="task-bubble"><span class="name">Outdoor chairs</span><span class="status"></span></label>
+          <input type="checkbox" id="cl-espresso" name="cl_task" value="Espresso Machines"><label for="cl-espresso" class="task-bubble"><span class="name">Espresso Machines</span><span class="status"></span></label>
+          <input type="checkbox" id="cl-count" name="cl_task" value="Count Money"><label for="cl-count" class="task-bubble"><span class="name">Count Money</span><span class="status"></span></label>
+          <input type="checkbox" id="cl-speaker" name="cl_task" value="Turn off Speaker"><label for="cl-speaker" class="task-bubble"><span class="name">Turn off Speaker</span><span class="status"></span></label>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="closing-notes">Notes</label><br />
+          <textarea id="closing-notes" name="closing-notes" rows="4" style="width:100%;"></textarea>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+          <button id="closing-submit" class="btn btn-primary" type="button">Submit closing report</button>
+          <div id="closing-status" aria-live="polite"></div>
+        </div>
+      </form>
+    </section>
+
+    <div style="margin-top:18px; font-size:0.9rem; color:#666">Reports are sent using Formspree. Provide the correct passcode before submitting.</div>
+  </div>
+
+  <script>
+    (function(){
+      const openingForm = document.getElementById('opening-form');
+      const closingForm = document.getElementById('closing-form');
+      const openingStatus = document.getElementById('opening-status');
+      const closingStatus = document.getElementById('closing-status');
+      const passcodeInput = document.getElementById('passcode');
+
+      const OPENING_ENDPOINT = 'https://formspree.io/f/xzdnopeq';
+      const CLOSING_ENDPOINT = 'https://formspree.io/f/xykrogev';
+
+      function validatePasscode() {
+        // Enforce shared passcode (case-sensitive)
+        return passcodeInput && passcodeInput.value.trim() === 'BucketIsCool';
+      }
+
+      async function submitForm(endpoint, payloadObj, statusEl) {
+        statusEl.textContent = '';
+        try {
+          const data = new FormData();
+          Object.keys(payloadObj).forEach(k=> data.append(k, payloadObj[k]));
+          const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
+          if (res.ok) {
+            statusEl.innerHTML = '<div class="success">Report submitted. A confirmation email has been sent.</div>';
+            return true;
+          } else {
+            const txt = await res.text();
+            console.error('submit error', res.status, txt);
+            statusEl.textContent = 'Submission failed. Please try again or notify a manager.';
+            return false;
+          }
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = 'Network error. Please try again.';
+          return false;
+        }
+      }
+
+      document.getElementById('opening-submit').addEventListener('click', async function(){
+        if (!validatePasscode()) { openingStatus.textContent = 'Incorrect passcode'; return; }
+        const name = document.getElementById('passcode').value.trim();
+        const tasks = Array.from(openingForm.querySelectorAll('input[name="op_task"]')).map(i=> ({ checked: i.checked, value: i.value }));
+        const completed = tasks.filter(t=>t.checked).map(t=>t.value);
+        const payload = {
+          employee: name,
+          tasks: completed.join(', '),
+          _subject: 'Opening Report - ' + (name || 'Unknown')
+        };
+        const ok = await submitForm(OPENING_ENDPOINT, payload, openingStatus);
+        if (ok) openingForm.reset();
+      });
+
+      document.getElementById('closing-submit').addEventListener('click', async function(){
+        if (!validatePasscode()) { closingStatus.textContent = 'Incorrect passcode'; return; }
+        const name = document.getElementById('passcode').value.trim();
+        const tasks = Array.from(closingForm.querySelectorAll('input[name="cl_task"]')).map(i=> ({ checked: i.checked, value: i.value }));
+        const completed = tasks.filter(t=>t.checked).map(t=>t.value);
+        const notes = document.getElementById('closing-notes').value.trim();
+        const payload = {
+          employee: name,
+          tasks: completed.join(', '),
+          notes: notes,
+          _subject: 'Closing Report - ' + (name || 'Unknown')
+        };
+        const ok = await submitForm(CLOSING_ENDPOINT, payload, closingStatus);
+        if (ok) closingForm.reset();
+      });
+
+    })();
+  </script>
+</body>
+</html>
