@@ -122,7 +122,9 @@
                      rel="noopener noreferrer">
                     See Menu
                   </a>
-                  <a class="btn hero-events-button" href="#events">
+                  <a class="btn hero-events-button"
+                     href="#events"
+                     rel="noopener noreferrer">
                       See Events
                   </a>
               </div>
@@ -427,23 +429,29 @@
 
         function hideTooltip(){ tooltip.style.display='none'; }
 
-        // initialize
+        function refreshCalendar() {
+          events.length = 0;
+          hideTooltip();
+          hideDayModal();
+          addRecurringEvents(curYear, curMonth);
+          renderCalendar(curYear, curMonth);
+          cal.classList.remove('is-refreshing');
+          requestAnimationFrame(() => cal.classList.add('is-refreshing'));
+        }
+
+        const cal = document.getElementById('calendar');
         const now = new Date();
         let curYear = now.getFullYear();
         let curMonth = now.getMonth();
-        addRecurringEvents(curYear, curMonth);
-        renderCalendar(curYear, curMonth);
+        refreshCalendar();
 
         document.getElementById('prev-month').addEventListener('click',()=>{
           curMonth--; if (curMonth<0){ curMonth=11; curYear--; }
-          // rebuild recurring events for new month
-          addRecurringEvents(curYear, curMonth);
-          renderCalendar(curYear, curMonth);
+          refreshCalendar();
         });
         document.getElementById('next-month').addEventListener('click',()=>{
           curMonth++; if (curMonth>11){ curMonth=0; curYear++; }
-          addRecurringEvents(curYear, curMonth);
-          renderCalendar(curYear, curMonth);
+          refreshCalendar();
         });
       })();
     </script>
