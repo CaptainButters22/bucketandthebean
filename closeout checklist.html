@@ -6,7 +6,32 @@
   <title>Closeout Checklist — Bucket and the Bean</title>
   <link rel="stylesheet" href="styles.css">
   <style>
+    /* Load Otherway from local fonts/ fallback to serif */
+    @font-face {
+      font-family: 'Otherway';
+      src: url('fonts/Otherway-Regular.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; padding:24px; color:#2f2f2f; }
+    /* Top navigation */
+    .topbar{ background:#8DACC0; }
+    .topbar .nav{ max-width:760px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; padding:12px 16px; }
+    .menu-list{ display:flex; gap:18px; align-items:center; }
+    .menu-list a{ color:#2E211B; text-decoration:none; font-weight:600; }
+    .menu-button{ background:transparent; border:1px solid rgba(0,0,0,0.08); padding:8px 12px; border-radius:6px; cursor:pointer; color:#2E211B; }
+    /* Hero / title card */
+    .hero{ padding:28px 16px; text-align:left; }
+    .hero h1{ font-family:'Otherway', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color:#2E211B; margin:0 0 10px; font-size:2rem; font-weight:700; }
+    .hero p.lead{ margin:0 0 18px; color:#3b2f2f; }
+    .feature-boxes{ display:flex; gap:16px; flex-wrap:wrap; margin-top:18px; }
+    .feature-box{ background:transparent; border:2px solid #fff; padding:16px; flex:1 1 220px; min-width:200px; border-radius:8px; color:#2E211B; }
+    .feature-box h3{ margin:0 0 8px; font-weight:800; }
+    /* Partners section */
+    .partners{ background:#8DACC0; color:#2E211B; padding:20px 16px; margin-top:26px; border-radius:8px; }
+    .partners h2{ text-align:center; margin:0 0 12px; }
+    .partners ul{ list-style:none; padding:0; margin:0; text-align:center; line-height:1.8; }
     .container{ max-width:760px; margin:0 auto; }
     h1{ color:#3b2f2f; }
     form{ background:#fff; padding:16px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
@@ -27,7 +52,41 @@
   </style>
 </head>
 <body>
+  <header class="topbar" role="banner">
+    <div class="nav">
+      <div class="brand"><a href="/" style="color:#2E211B; text-decoration:none; font-weight:700">Bucket &amp; the Bean</a></div>
+      <nav aria-label="Main navigation">
+        <div class="menu-list">
+          <a href="/">Home</a>
+          <a href="/events">Events</a>
+          <a href="/menu">Menu</a>
+          <a href="/contact">Contact</a>
+        </div>
+      </nav>
+      <button class="menu-button" aria-expanded="false" aria-controls="main-menu">Menu</button>
+    </div>
+  </header>
+
   <div class="container">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">Welcome to our community!</h1>
+      <p class="lead">We proudly serve homemade syrups, locally roasted coffee and baked goods, and provide a cozy space to gather and find community.</p>
+
+      <div class="feature-boxes" role="list">
+        <div class="feature-box" role="listitem">
+          <h3>Taste</h3>
+          <div>We pride ourselves on keeping things local as much as possible. We serve all house-made syrups (and Autocrat), locally roasted beans, and a variety of looseleaf teas. All our pastries are baked from scratch by a local baker. As our menu expands, we plan to expand our retail to curate a small collection of other local businesses.</div>
+        </div>
+        <div class="feature-box" role="listitem">
+          <h3>Space</h3>
+          <div>Our space was designed with you in mind; we have space for larger group meet-ups, couch seating for gossip sessions, and 2-person tables for getting some work done or a morning coffee date. When you visit, make sure to check out the art on the walls. Every month, we highlight a new local artist, and the pieces are often for sale.</div>
+        </div>
+        <div class="feature-box" role="listitem">
+          <h3>Gather</h3>
+          <div>We are more than a cafe, but a community third-space. Everyone who walks in should feel welcomed. Toward this end, we host a variety of weekly community events, as well as fun one-off events, so don't forget to check out our calendar of events!</div>
+        </div>
+      </div>
+    </section>
     <a href="/">← Back</a>
     <h1>Opening & Closing Reports</h1>
     <p>Use the passcode below, then tap each item when completed. Opening report is above; closing report is below.</p>
@@ -80,6 +139,24 @@
           <div id="closing-status" aria-live="polite"></div>
         </div>
       </form>
+    </section>
+
+    <section class="partners" aria-labelledby="partners-title">
+      <h2 id="partners-title">Local Business Partners</h2>
+      <ul>
+        <li>B Sousa Fitness · Coventry, RI</li>
+        <li>Herbs &amp; Mylk · North Kingstown, RI</li>
+        <li>Kindheart Coffee (formerly Lighthouse Coffee) · North Kingstown, RI</li>
+        <li>Kristen’s Kreations Bakery · North Kingstown, RI</li>
+        <li>Krunchy Kate · Rhode Island</li>
+        <li>Loaves with Lyss · Rhode Island</li>
+        <li>Longshore Coffee · Coventry, RI</li>
+        <li>Rare Breed Coffee · Nashua, NH</li>
+        <li>Staghorn Gardening · Rhode Island</li>
+        <li>Tideshift Coaching · Rhode Island</li>
+        <li>Vital Fitness Testing · Wickford, RI</li>
+        <li>Wickford Harbor Fire · Wickford, RI</li>
+      </ul>
     </section>
 
     <div style="margin-top:18px; font-size:0.9rem; color:#666">Reports are sent using Formspree. Provide the correct passcode before submitting.</div>
