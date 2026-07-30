@@ -144,6 +144,19 @@ button,
   flex-wrap: wrap;
 }
 
+.hero-menu-button {
+  background: #8DACC0;
+  color: #000;
+  padding: 0.95rem 1.75rem;
+}
+
+.hero-events-button {
+  background: #8DACC0;
+  border-radius: 0;
+  color: #000;
+  padding: 0.95rem 1.75rem;
+}
+
 .btn-primary,
 .btn-secondary,
 button {
@@ -207,14 +220,41 @@ button {
   color: var(--text);
 }
 
+.update-form-container input,
 .update-form-container textarea {
   width: 100%;
-  min-height: 12rem;
   padding: 1rem;
   border: 1px solid rgba(51, 42, 36, 0.15);
   border-radius: 1rem;
   font: inherit;
+}
+
+.update-form-container textarea {
+  min-height: 12rem;
   resize: vertical;
+}
+
+.contact-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.contact-details > div {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.contact-subject {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.contact-subject legend {
+  padding: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .menu-card h3,
@@ -290,6 +330,38 @@ button {
   color: var(--muted);
 }
 
+.site-footer p {
+  margin: 0.35rem 0;
+}
+
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.social-links a {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.social-links svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: currentColor;
+}
+
+.social-links a:nth-child(2) svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
 @media (min-width: 768px) {
   .community-pillars {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -301,6 +373,10 @@ button {
 
   .event-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .contact-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
