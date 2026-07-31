@@ -294,6 +294,38 @@ button {
   padding-top: 4rem;
 }
 
+#events.events-section {
+  margin-top: 4rem;
+  padding: 4rem 2rem;
+  background: #7C533D;
+  color: #fff;
+}
+
+#events .section-header h2,
+#events .calendar-grid .day-name {
+  color: #fff;
+}
+
+#events .calendar-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+}
+
+#events .calendar-cell {
+  min-width: 0;
+  overflow: hidden;
+}
+
+#events .calendar-cell.is-today {
+  background: #8DACC0;
+}
+
+.artist-highlight {
+  margin: 1.25rem auto;
+  max-width: 920px;
+  text-align: center;
+}
+
 .partners-section {
   background: #8DACC0;
   margin-top: 4rem;
@@ -306,8 +338,9 @@ button {
 
 .partner-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
-  max-width: 42rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: 0;
   list-style: none;
@@ -408,5 +441,9 @@ button {
 
   .community-title {
     font-size: 3.5rem;
+  }
+
+  .partner-list {
+    grid-template-columns: 1fr;
   }
 }
