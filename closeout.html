@@ -36,6 +36,9 @@
     .bubble-wave input:checked + label.task-bubble{ background:#5b3a30; color:#fff; border-color:transparent; }
     .task-bubble.is-unavailable{ opacity:0.45; cursor:not-allowed; text-decoration:line-through; }
     .checklist-key{ display:flex; flex-wrap:wrap; gap:8px 16px; margin:12px 0; }
+    .report-switcher{ display:flex; gap:8px; margin:18px 0 12px; }
+    .report-switcher button{ padding:10px 16px; border:1px solid #5b3a30; border-radius:999px; background:#fff; color:#5b3a30; cursor:pointer; font-weight:700; }
+    .report-switcher button[aria-selected="true"]{ background:#5b3a30; color:#fff; }
     .task-tag{ font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
     .inventory-list{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:16px; }
     .inventory-column{ display:grid; align-content:start; gap:12px; }
@@ -47,6 +50,12 @@
     .inventory-statuses input:checked + label{ background:#5b3a30; color:#fff; border-color:#5b3a30; }
     .inventory-note{ margin-top:10px; }
     .inventory-note input{ width:100%; padding:8px; border:1px solid #d8d8d8; border-radius:6px; }
+    .cash-question{ margin-top:16px; padding:12px; border:1px solid #ddd; border-radius:8px; }
+    .cash-question fieldset{ margin:0; padding:0; border:0; }
+    .cash-question label{ margin-right:12px; }
+    .currency-input{ display:flex; align-items:center; max-width:180px; margin-top:10px; border:1px solid #d8d8d8; border-radius:6px; background:#fff; }
+    .currency-input span{ padding-left:10px; font-weight:700; }
+    .currency-input input{ width:100%; padding:8px; border:0; border-radius:6px; font:inherit; }
     textarea{ width:100%; min-height:84px; }
     .btn{ padding:10px 16px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
     .btn-primary{ background:#5b3a30; color:#fff; }
@@ -91,9 +100,13 @@
       <label for="barista-name"><strong>Name of barista</strong> <span>(optional)</span></label><br />
       <input id="barista-name" name="barista-name" type="text" autocomplete="name" placeholder="Enter your name" style="padding:8px; border-radius:6px; border:1px solid #d8d8d8; width:220px;" />
     </div>
+    <div class="report-switcher" role="tablist" aria-label="Report form">
+      <button id="opening-tab" type="button" role="tab" aria-controls="opening-report" aria-selected="true">Opening Report</button>
+      <button id="closing-tab" type="button" role="tab" aria-controls="closing-report" aria-selected="false">Closing Report</button>
+    </div>
 
     <!-- Opening report: just bubbles (with submit) -->
-    <section aria-labelledby="opening-title">
+    <section id="opening-report" role="tabpanel" aria-labelledby="opening-tab">
       <h2 id="opening-title">Opening Report</h2>
       <form id="opening-form">
         <div class="bubble-wave" role="group" aria-label="Opening tasks">
@@ -127,7 +140,7 @@
     <hr style="margin:18px 0" />
 
     <!-- Closing report -->
-    <section aria-labelledby="closing-title">
+    <section id="closing-report" role="tabpanel" aria-labelledby="closing-tab" hidden>
       <h2 id="closing-title">Closing Report</h2>
       <form id="closing-form">
         <div class="bubble-wave" role="group" aria-label="Closing tasks">
@@ -151,6 +164,16 @@
         <input type="checkbox" id="cl-chairs" name="cl_task" value="Bring chairs inside"><label for="cl-chairs" class="task-bubble"><span class="name">Bring chairs inside</span><span class="status"></span></label>
         <input type="checkbox" id="cl-inventory" name="cl_task" value="Inventory milk, tea, coffee, pastries"><label for="cl-inventory" class="task-bubble"><span class="name">Inventory milk, tea/coffee, pastries</span><span class="status"></span></label>
         </div>
+
+        <section id="cash-question" class="cash-question" hidden>
+          <div id="cash-amount-field">
+            <label for="cash-amount">What was the difference in the cash drawer?</label>
+            <div class="currency-input">
+              <span aria-hidden="true">$</span>
+              <input id="cash-amount" name="cash-amount" type="number" min="0.01" step="0.01" inputmode="decimal">
+            </div>
+          </div>
+        </section>
 
         <section id="inventory-section" hidden>
           <h3>Inventory</h3>
@@ -184,6 +207,13 @@
       const inventoryList = document.getElementById('inventory-list');
       const inventoryTask = document.getElementById('cl-inventory');
       const inventorySection = document.getElementById('inventory-section');
+      const cashTask = document.getElementById('cl-cash-drawer');
+      const cashQuestion = document.getElementById('cash-question');
+      const cashAmountInput = document.getElementById('cash-amount');
+      const openingTab = document.getElementById('opening-tab');
+      const closingTab = document.getElementById('closing-tab');
+      const openingReport = document.getElementById('opening-report');
+      const closingReport = document.getElementById('closing-report');
 
       const OPENING_ENDPOINT = 'https://formspree.io/f/xzdnopeq';
       const CLOSING_ENDPOINT = 'https://formspree.io/f/xykrogev';
@@ -298,6 +328,27 @@
 
       inventoryTask.addEventListener('change', toggleInventory);
 
+      function toggleCashQuestion() {
+        cashQuestion.hidden = !cashTask.checked;
+        cashAmountInput.required = cashTask.checked;
+        if (!cashTask.checked) {
+          cashAmountInput.value = '';
+        }
+      }
+
+      cashTask.addEventListener('change', toggleCashQuestion);
+
+      function showReport(reportName) {
+        const isOpening = reportName === 'opening';
+        openingReport.hidden = !isOpening;
+        closingReport.hidden = isOpening;
+        openingTab.setAttribute('aria-selected', String(isOpening));
+        closingTab.setAttribute('aria-selected', String(!isOpening));
+      }
+
+      openingTab.addEventListener('click', function() { showReport('opening'); });
+      closingTab.addEventListener('click', function() { showReport('closing'); });
+
       function inventoryIsComplete() {
         const inventoryItems = Array.from(closingForm.querySelectorAll('.inventory-item'));
         return inventoryTask.checked &&
@@ -336,7 +387,7 @@
         const baristaName = baristaNameInput.value.trim();
         const payload = {
           barista_name: baristaName,
-          tasks: incompleteTaskSummary(openingForm, 'op_task'),
+          "What wasn't done": incompleteTaskSummary(openingForm, 'op_task'),
           _subject: 'Opening Report - ' + (baristaName || 'Unknown')
         };
         const ok = await submitForm(OPENING_ENDPOINT, payload, openingStatus);
@@ -349,6 +400,10 @@
           closingStatus.textContent = 'Please complete the inventory before submitting the closing report.';
           return;
         }
+        if (cashTask.checked && !cashAmountInput.checkValidity()) {
+          cashAmountInput.reportValidity();
+          return;
+        }
         const baristaName = baristaNameInput.value.trim();
         const notes = document.getElementById('closing-notes').value.trim();
         const inventory = Array.from(closingForm.querySelectorAll('.inventory-item')).map((item) => {
@@ -359,7 +414,8 @@
         }).filter(Boolean);
         const payload = {
           barista_name: baristaName,
-          tasks: incompleteTaskSummary(closingForm, 'cl_task'),
+          "What wasn't done": incompleteTaskSummary(closingForm, 'cl_task'),
+          cash_drawer_difference: cashTask.checked ? cashAmountInput.value : '',
           inventory: inventory.join('\n'),
           notes: notes,
           _subject: 'Closing Report - ' + (baristaName || 'Unknown')
@@ -368,6 +424,7 @@
         if (ok) {
           closingForm.reset();
           toggleInventory();
+          toggleCashQuestion();
         }
       });
 
