@@ -70,6 +70,16 @@ function validMonth(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
+function validEventDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function validOptionalTime(value: unknown): value is string {
+  return typeof value === 'string' && (value === '' || /^\d{2}:\d{2}$/.test(value));
+}
+
 function validSchedule(value: unknown): value is string {
   return ['always', 'monday', 'every_other_day', 'every_other_wednesday'].includes(String(value));
 }
@@ -140,16 +150,27 @@ Deno.serve(async (request) => {
     return { opening, closing };
   }
 
+  async function listEvents() {
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .select('id,title,event_date,start_time,end_time,description')
+      .order('event_date')
+      .order('created_at');
+    if (error) throw error;
+    return data ?? [];
+  }
+
   try {
     if (body.action === 'load') {
       if (!validMonth(body.month)) return json(request, { error: 'Invalid month' }, 400);
       const month = `${body.month}-01`;
-      const [{ data: artist, error: artistError }, tasks] = await Promise.all([
+      const [{ data: artist, error: artistError }, tasks, events] = await Promise.all([
         supabase.from('artist_highlights').select('artist_name,contact_info').eq('month', month).maybeSingle(),
-        taskGroups()
+        taskGroups(),
+        listEvents()
       ]);
       if (artistError) throw artistError;
-      return json(request, { artist, tasks });
+      return json(request, { artist, tasks, events });
     }
 
     if (body.action === 'save_artist_highlight') {
@@ -224,6 +245,33 @@ Deno.serve(async (request) => {
         .eq('report_type', body.report_type);
       if (error) throw error;
       return json(request, { tasks: await taskGroups() });
+    }
+
+    if (body.action === 'add_event') {
+      if (!validEventDate(body.event_date) || typeof body.title !== 'string' || !body.title.trim()) {
+        return json(request, { error: 'An event title and valid date are required.' }, 400);
+      }
+      if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
+        return json(request, { error: 'Invalid event details.' }, 400);
+      }
+      const { error } = await supabase.from('calendar_events').insert({
+        id: crypto.randomUUID(),
+        title: body.title.trim(),
+        event_date: body.event_date,
+        start_time: body.start_time || null,
+        end_time: body.end_time || null,
+        description: body.description.trim(),
+        is_published: true
+      });
+      if (error) throw error;
+      return json(request, { events: await listEvents() });
+    }
+
+    if (body.action === 'remove_event') {
+      if (typeof body.event_id !== 'string') return json(request, { error: 'Invalid event' }, 400);
+      const { error } = await supabase.from('calendar_events').delete().eq('id', body.event_id);
+      if (error) throw error;
+      return json(request, { events: await listEvents() });
     }
 
     return json(request, { error: 'Unknown action' }, 400);
