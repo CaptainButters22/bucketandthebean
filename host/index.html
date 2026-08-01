@@ -208,12 +208,13 @@
 
         document.getElementById('task-form').addEventListener('submit', async (event) => {
           event.preventDefault();
+          const form = event.currentTarget;
           try {
             const data = await request('add_closing_task', {
               label: document.getElementById('task-label').value.trim(),
               schedule_type: document.getElementById('task-schedule').value
             });
-            event.currentTarget.reset();
+            form.reset();
             renderTasks(data.tasks);
             setMessage(taskMessage, 'Closing task added.');
           } catch (error) {
