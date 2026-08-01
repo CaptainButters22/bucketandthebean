@@ -1,2 +1,5 @@
 [functions.host-admin]
 verify_jwt = false
+
+[functions.closeout-report]
+verify_jwt = false
