@@ -296,26 +296,27 @@
         contact: 'Contact information'
       };
 
-        // Add recurring events for a given month
-        // Muffins & Mahjong -> Every Thursday, 9:00 AM - 11:00 AM
-        // Beans & Skeins -> Every Wednesday, 2:00 PM - 4:00 PM
-        // Tabletop Tuesday (existing) -> Every Tuesday, 3:30 PM - 6:30 PM
-        function addRecurringEvents(year, month) {
-          const first = new Date(year, month, 1);
-          const last = new Date(year, month + 1, 0);
-          for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
-            const day = d.getDay();
-            if (day === 2) { // Tuesday
-              events.push({ date: d.toISOString().slice(0,10), title: 'Tabletop Tuesday', time: '3:30 PM – 6:30 PM', desc: 'If you are a casual Magic the Gathering player, board game enthusiast, or looking to have a few hours of phone-free fun, we are here to give you a group to play with. Everyone is welcome!' });
-            }
-            if (day === 3) { // Wednesday
-              events.push({ date: d.toISOString().slice(0,10), title: 'Beans & Skeins', time: '2:00 PM – 4:00 PM', desc: 'Work on your current WIP (Work In Progress) and come spill the tea (or coffee) with other local crafters! Friends and new crafters welcome!' });
-            }
-            if (day === 4) { // Thursday
-              events.push({ date: d.toISOString().slice(0,10), title: 'Muffins & Mahjong', time: '9:00 AM – 11:00 AM', desc: 'Our tables are the perfect size! Bring your Mahjong set and your friends, or meet some new ones, and play a fun game! The time is yours!' });
+        /*
+          Built-in recurring events are intentionally disabled. Manage all
+          calendar events through the host dashboard instead.
+
+          function addRecurringEvents(year, month) {
+            const first = new Date(year, month, 1);
+            const last = new Date(year, month + 1, 0);
+            for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+              const day = d.getDay();
+              if (day === 2) {
+                events.push({ date: d.toISOString().slice(0,10), title: 'Tabletop Tuesday', time: '3:30 PM – 6:30 PM', desc: 'If you are a casual Magic the Gathering player, board game enthusiast, or looking to have a few hours of phone-free fun, we are here to give you a group to play with. Everyone is welcome!' });
+              }
+              if (day === 3) {
+                events.push({ date: d.toISOString().slice(0,10), title: 'Beans & Skeins', time: '2:00 PM – 4:00 PM', desc: 'Work on your current WIP (Work In Progress) and come spill the tea (or coffee) with other local crafters! Friends and new crafters welcome!' });
+              }
+              if (day === 4) {
+                events.push({ date: d.toISOString().slice(0,10), title: 'Muffins & Mahjong', time: '9:00 AM – 11:00 AM', desc: 'Our tables are the perfect size! Bring your Mahjong set and your friends, or meet some new ones, and play a fun game! The time is yours!' });
+              }
             }
           }
-        }
+        */
 
         const tooltip = document.getElementById('tooltip');
 
@@ -560,7 +561,7 @@
           events.length = 0;
           hideTooltip();
           hideDayModal();
-          addRecurringEvents(curYear, curMonth);
+          // addRecurringEvents(curYear, curMonth);
           renderCalendar(curYear, curMonth);
           loadArtistHighlight(curYear, curMonth);
           loadCalendarEvents(curYear, curMonth);
