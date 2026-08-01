@@ -61,15 +61,22 @@ Deno.serve(async (request) => {
     return json(request, { error: 'Invalid request' }, 400);
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!serviceRoleKey) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY is unavailable.');
+    return json(request, { error: 'Password verification is unavailable.' }, 500);
+  }
+
+  const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', serviceRoleKey);
   const { data: authorized, error: authError } = await supabase.rpc('verify_closeout_password', {
     p_password: body.password
   });
 
-  if (authError || !authorized) return json(request, { error: 'Unauthorized' }, 401);
+  if (authError) {
+    console.error('Password verification failed.', authError);
+    return json(request, { error: 'Password verification is unavailable.' }, 500);
+  }
+  if (!authorized) return json(request, { error: 'Unauthorized' }, 401);
 
   async function listClosingTasks() {
     const { data: existing, error } = await supabase
@@ -82,6 +89,7 @@ Deno.serve(async (request) => {
 
     const { error: seedError } = await supabase.from('closeout_tasks').insert(
       closingTasks.map(([label, schedule_type], index) => ({
+        id: crypto.randomUUID(),
         report_type: 'closing',
         label,
         schedule_type,
@@ -133,6 +141,7 @@ Deno.serve(async (request) => {
       const tasks = await listClosingTasks();
       const maxOrder = tasks.reduce((max, task) => Math.max(max, task.sort_order), 0);
       const { error } = await supabase.from('closeout_tasks').insert({
+        id: crypto.randomUUID(),
         report_type: 'closing',
         label: body.label.trim(),
         schedule_type: body.schedule_type,
@@ -158,6 +167,11 @@ Deno.serve(async (request) => {
     return json(request, { error: 'Unknown action' }, 400);
   } catch (error) {
     console.error(error);
-    return json(request, { error: 'Unable to complete the request.' }, 500);
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error && 'message' in error && typeof error.message === 'string'
+        ? error.message
+        : 'Unable to complete the request.';
+    return json(request, { error: message }, 500);
   }
 });
