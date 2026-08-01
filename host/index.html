@@ -214,7 +214,8 @@
               label: document.getElementById('task-label').value.trim(),
               schedule_type: document.getElementById('task-schedule').value
             });
-            taskForm.reset();
+            document.getElementById('task-label').value = '';
+            document.getElementById('task-schedule').value = 'always';
             renderTasks(data.tasks);
             setMessage(taskMessage, 'Closing task added.');
           } catch (error) {
