@@ -109,7 +109,7 @@
     <section id="opening-report" role="tabpanel" aria-labelledby="opening-tab">
       <h2 id="opening-title">Opening Report</h2>
       <form id="opening-form">
-        <div class="bubble-wave" role="group" aria-label="Opening tasks">
+        <div id="opening-tasks" class="bubble-wave" role="group" aria-label="Opening tasks">
           <input type="checkbox" id="op-outdoor-chairs" name="op_task" value="Set up outdoor chairs"><label for="op-outdoor-chairs" class="task-bubble"><span class="name">Set up outdoor chairs</span><span class="status"></span></label>
           <input type="checkbox" id="op-cash" name="op_task" value="Clock in and count cash in drawer"><label for="op-cash" class="task-bubble"><span class="name">Clock in &amp; count cash in drawer</span><span class="status"></span></label>
           <input type="checkbox" id="op-kettles" name="op_task" value="Turn on kettles (200 F)"><label for="op-kettles" class="task-bubble"><span class="name">Turn on kettles (200 F)</span><span class="status"></span></label>
@@ -210,6 +210,7 @@
       let cashTask = document.getElementById('cl-cash-drawer');
       const cashQuestion = document.getElementById('cash-question');
       const cashAmountInput = document.getElementById('cash-amount');
+      const openingTasks = document.getElementById('opening-tasks');
       const closingTasks = document.getElementById('closing-tasks');
       const openingTab = document.getElementById('opening-tab');
       const closingTab = document.getElementById('closing-tab');
@@ -331,6 +332,7 @@
       renderInventory();
       updatePeriodicTasks();
       bindClosingTaskControls();
+      loadOpeningTasks();
       loadClosingTasks();
       inventoryList.addEventListener('change', function(event) {
         if (event.target.matches('input[type="radio"]')) updateInventoryNote(event.target);
@@ -351,6 +353,32 @@
       function bindClosingTaskControls() {
         inventoryTask.addEventListener('change', toggleInventory);
         cashTask.addEventListener('change', toggleCashQuestion);
+      }
+
+      function renderOpeningTasks(tasks) {
+        openingTasks.replaceChildren();
+        const today = new Date();
+
+        tasks.forEach((task) => {
+          const id = `op-task-${task.id}`;
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = id;
+          input.name = 'op_task';
+          input.value = task.label;
+
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.className = 'task-bubble';
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = task.label;
+          const status = document.createElement('span');
+          status.className = 'status';
+          label.append(name, status);
+          openingTasks.append(input, label);
+          setTaskAvailability(id, isScheduleAvailable(task.schedule_type, today));
+        });
       }
 
       function renderClosingTasks(tasks) {
@@ -404,6 +432,23 @@
           if (!response.ok) throw new Error(`Closing task request failed: ${response.status}`);
           const tasks = await response.json();
           if (tasks.length > 0) renderClosingTasks(tasks);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      async function loadOpeningTasks() {
+        const url = `${SUPABASE_URL}/rest/v1/closeout_tasks?select=id,label,schedule_type&report_type=eq.opening&is_visible=eq.true&order=sort_order.asc`;
+        try {
+          const response = await fetch(url, {
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+            }
+          });
+          if (!response.ok) throw new Error(`Opening task request failed: ${response.status}`);
+          const tasks = await response.json();
+          if (tasks.length > 0) renderOpeningTasks(tasks);
         } catch (error) {
           console.error(error);
         }

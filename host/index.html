@@ -49,7 +49,7 @@
     <main>
       <section id="login-panel" class="panel">
         <h1>Host Dashboard</h1>
-        <p>Enter the host password to manage the monthly artist highlight and Closing Report tasks.</p>
+        <p>Enter the host password to manage the monthly artist highlight and report tasks.</p>
         <form id="login-form">
           <label for="host-password">Host password
             <input id="host-password" type="password" autocomplete="current-password" required />
@@ -89,9 +89,15 @@
         </section>
 
         <section class="panel">
-          <h2>Closing Report Tasks</h2>
+          <h2 id="task-heading">Closing Report Tasks</h2>
           <form id="task-form">
             <div class="field-grid">
+              <label for="task-report-type">Report
+                <select id="task-report-type">
+                  <option value="closing">Closing</option>
+                  <option value="opening">Opening</option>
+                </select>
+              </label>
               <label for="task-label">Task
                 <input id="task-label" type="text" required />
               </label>
@@ -104,7 +110,7 @@
                 </select>
               </label>
             </div>
-            <button type="submit">Add Closing task</button>
+            <button id="add-task-button" type="submit">Add Closing task</button>
           </form>
           <p id="task-message" class="message" aria-live="polite"></p>
           <ul id="task-list" class="task-list" aria-live="polite"></ul>
@@ -119,6 +125,9 @@
         const dashboard = document.getElementById('dashboard');
         const taskList = document.getElementById('task-list');
         const taskForm = document.getElementById('task-form');
+        const taskReportType = document.getElementById('task-report-type');
+        const taskHeading = document.getElementById('task-heading');
+        const addTaskButton = document.getElementById('add-task-button');
         const loginMessage = document.getElementById('login-message');
         const artistMessage = document.getElementById('artist-message');
         const taskMessage = document.getElementById('task-message');
@@ -139,7 +148,18 @@
           return data;
         }
 
-        function renderTasks(tasks) {
+        let taskGroups = { opening: [], closing: [] };
+
+        function selectedReportLabel() {
+          return taskReportType.value === 'opening' ? 'Opening' : 'Closing';
+        }
+
+        function renderTasks() {
+          const reportType = taskReportType.value;
+          const tasks = taskGroups[reportType];
+          const reportLabel = selectedReportLabel();
+          taskHeading.textContent = `${reportLabel} Report Tasks`;
+          addTaskButton.textContent = `Add ${reportLabel} task`;
           taskList.replaceChildren();
           tasks.forEach((task) => {
             const item = document.createElement('li');
@@ -150,11 +170,12 @@
             remove.className = 'danger';
             remove.textContent = 'Remove';
             remove.addEventListener('click', async () => {
-              if (!confirm(`Remove "${task.label}" from the Closing Report?`)) return;
+              if (!confirm(`Remove "${task.label}" from the ${reportLabel} Report?`)) return;
               try {
-                const data = await request('remove_closing_task', { task_id: task.id });
-                renderTasks(data.tasks);
-                setMessage(taskMessage, 'Closing task removed.');
+                const data = await request('remove_task', { task_id: task.id, report_type: reportType });
+                taskGroups = data.tasks;
+                renderTasks();
+                setMessage(taskMessage, `${reportLabel} task removed.`);
               } catch (error) {
                 setMessage(taskMessage, error.message, true);
               }
@@ -169,7 +190,8 @@
           const data = await request('load', { month });
           document.getElementById('artist-name').value = data.artist?.artist_name || '';
           document.getElementById('artist-contact').value = data.artist?.contact_info || '';
-          renderTasks(data.tasks);
+          taskGroups = data.tasks;
+          renderTasks();
         }
 
         document.getElementById('login-form').addEventListener('submit', async (event) => {
@@ -209,18 +231,27 @@
 
         taskForm.addEventListener('submit', async (event) => {
           event.preventDefault();
+          const reportType = taskReportType.value;
+          const reportLabel = selectedReportLabel();
           try {
-            const data = await request('add_closing_task', {
+            const data = await request('add_task', {
+              report_type: reportType,
               label: document.getElementById('task-label').value.trim(),
               schedule_type: document.getElementById('task-schedule').value
             });
             document.getElementById('task-label').value = '';
             document.getElementById('task-schedule').value = 'always';
-            renderTasks(data.tasks);
-            setMessage(taskMessage, 'Closing task added.');
+            taskGroups = data.tasks;
+            renderTasks();
+            setMessage(taskMessage, `${reportLabel} task added.`);
           } catch (error) {
             setMessage(taskMessage, error.message, true);
           }
+        });
+
+        taskReportType.addEventListener('change', () => {
+          taskMessage.textContent = '';
+          renderTasks();
         });
 
         document.getElementById('logout-button').addEventListener('click', () => {
