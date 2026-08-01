@@ -90,34 +90,6 @@
         </section>
 
         <section class="panel">
-          <h2 id="task-heading">Closing Report Tasks</h2>
-          <form id="task-form">
-            <div class="field-grid">
-              <label for="task-report-type">Report
-                <select id="task-report-type">
-                  <option value="closing">Closing</option>
-                  <option value="opening">Opening</option>
-                </select>
-              </label>
-              <label for="task-label">Task
-                <input id="task-label" type="text" required />
-              </label>
-              <label for="task-schedule">Schedule
-                <select id="task-schedule">
-                  <option value="always">Always</option>
-                  <option value="monday">Mondays</option>
-                  <option value="every_other_day">Every other day</option>
-                  <option value="every_other_wednesday">Every other Wednesday</option>
-                </select>
-              </label>
-            </div>
-            <button id="add-task-button" type="submit">Add Closing task</button>
-          </form>
-          <p id="task-message" class="message" aria-live="polite"></p>
-          <ul id="task-list" class="task-list" aria-live="polite"></ul>
-        </section>
-
-        <section class="panel">
           <h2>Calendar Events</h2>
           <form id="event-form">
             <div class="field-grid">
@@ -158,6 +130,35 @@
             <ul id="past-event-list" class="task-list" aria-live="polite"></ul>
           </details>
         </section>
+
+        <section class="panel">
+          <h2 id="task-heading">Closing Report Tasks</h2>
+          <form id="task-form">
+            <div class="field-grid">
+              <label for="task-report-type">Report
+                <select id="task-report-type">
+                  <option value="closing">Closing</option>
+                  <option value="opening">Opening</option>
+                </select>
+              </label>
+              <label for="task-label">Task
+                <input id="task-label" type="text" required />
+              </label>
+              <label for="task-schedule">Schedule
+                <select id="task-schedule">
+                  <option value="always">Always</option>
+                  <option value="monday">Mondays</option>
+                  <option value="every_other_day">Every other day</option>
+                  <option value="every_other_wednesday">Every other Wednesday</option>
+                </select>
+              </label>
+            </div>
+            <button id="add-task-button" type="submit">Add Closing task</button>
+          </form>
+          <p id="task-message" class="message" aria-live="polite"></p>
+          <ul id="task-list" class="task-list" aria-live="polite"></ul>
+        </section>
+
       </section>
     </main>
     <script>
