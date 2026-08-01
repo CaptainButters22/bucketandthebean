@@ -143,7 +143,7 @@
     <section id="closing-report" role="tabpanel" aria-labelledby="closing-tab" hidden>
       <h2 id="closing-title">Closing Report</h2>
       <form id="closing-form">
-        <div class="bubble-wave" role="group" aria-label="Closing tasks">
+        <div id="closing-tasks" class="bubble-wave" role="group" aria-label="Closing tasks">
         <input type="checkbox" id="cl-trash-bags" name="cl_task" value="Replace trash bags"><label for="cl-trash-bags" class="task-bubble"><span class="name">Replace trash bags</span><span class="status"></span></label>
         <input type="checkbox" id="cl-wash-dishes" name="cl_task" value="Wash dishes and drain sink"><label for="cl-wash-dishes" class="task-bubble"><span class="name">Wash dishes &amp; drain sink</span><span class="status"></span></label>
         <input type="checkbox" id="cl-prep-cold-brew" name="cl_task" value="Prep cold brew"><label for="cl-prep-cold-brew" class="task-bubble"><span class="name">Prep cold brew</span><span class="status"></span></label>
@@ -193,7 +193,7 @@
       </form>
     </section>
 
-    <div style="margin-top:18px; font-size:0.9rem; color:#666">Reports are sent using Formspree. Provide the correct passcode before submitting.</div>
+    <div style="margin-top:18px; font-size:0.9rem; color:#666">Reports are submitted securely. Provide the correct passcode before submitting.</div>
   </div>
 
   <script>
@@ -205,18 +205,20 @@
       const passcodeInput = document.getElementById('passcode');
       const baristaNameInput = document.getElementById('barista-name');
       const inventoryList = document.getElementById('inventory-list');
-      const inventoryTask = document.getElementById('cl-inventory');
+      let inventoryTask = document.getElementById('cl-inventory');
       const inventorySection = document.getElementById('inventory-section');
-      const cashTask = document.getElementById('cl-cash-drawer');
+      let cashTask = document.getElementById('cl-cash-drawer');
       const cashQuestion = document.getElementById('cash-question');
       const cashAmountInput = document.getElementById('cash-amount');
+      const closingTasks = document.getElementById('closing-tasks');
       const openingTab = document.getElementById('opening-tab');
       const closingTab = document.getElementById('closing-tab');
       const openingReport = document.getElementById('opening-report');
       const closingReport = document.getElementById('closing-report');
 
-      const OPENING_ENDPOINT = 'https://formspree.io/f/xzdnopeq';
-      const CLOSING_ENDPOINT = 'https://formspree.io/f/xykrogev';
+      const CLOSEOUT_REPORT_ENDPOINT = 'https://ggqkabtiwlyvyjdbccjv.supabase.co/functions/v1/closeout-report';
+      const SUPABASE_URL = 'https://ggqkabtiwlyvyjdbccjv.supabase.co';
+      const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DJtzwlEdTev6JjY6ikrcaw_UwKWregs';
       const INVENTORY_ITEMS = [
         'Whole milk', 'Lactaid 1%', 'Oat', 'Almond', 'Cold brew beans',
         'Teas', 'Espresso', 'Decaf espresso', 'Light Pour Over',
@@ -257,10 +259,20 @@
 
       function updatePeriodicTasks() {
         const today = new Date();
-        setTaskAvailability('cl-filters', isEveryOtherDay(today));
-        setTaskAvailability('cl-backflush', isEveryOtherWednesday(today));
         setTaskAvailability('op-water-plant', today.getDay() === 1);
-        setTaskAvailability('cl-chair-legs', isEveryOtherWednesday(today));
+      }
+
+      function isScheduleAvailable(scheduleType, today) {
+        switch (scheduleType) {
+          case 'monday':
+            return today.getDay() === 1;
+          case 'every_other_day':
+            return isEveryOtherDay(today);
+          case 'every_other_wednesday':
+            return isEveryOtherWednesday(today);
+          default:
+            return true;
+        }
       }
 
       function incompleteTaskSummary(form, taskName) {
@@ -318,6 +330,8 @@
 
       renderInventory();
       updatePeriodicTasks();
+      bindClosingTaskControls();
+      loadClosingTasks();
       inventoryList.addEventListener('change', function(event) {
         if (event.target.matches('input[type="radio"]')) updateInventoryNote(event.target);
       });
@@ -325,8 +339,6 @@
       function toggleInventory() {
         inventorySection.hidden = !inventoryTask.checked;
       }
-
-      inventoryTask.addEventListener('change', toggleInventory);
 
       function toggleCashQuestion() {
         cashQuestion.hidden = !cashTask.checked;
@@ -336,7 +348,66 @@
         }
       }
 
-      cashTask.addEventListener('change', toggleCashQuestion);
+      function bindClosingTaskControls() {
+        inventoryTask.addEventListener('change', toggleInventory);
+        cashTask.addEventListener('change', toggleCashQuestion);
+      }
+
+      function renderClosingTasks(tasks) {
+        closingTasks.replaceChildren();
+        const today = new Date();
+
+        tasks.forEach((task) => {
+          const id = `cl-task-${task.id}`;
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = id;
+          input.name = 'cl_task';
+          input.value = task.label;
+
+          const label = document.createElement('label');
+          label.htmlFor = id;
+          label.className = 'task-bubble';
+          const name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = task.label;
+          const status = document.createElement('span');
+          status.className = 'status';
+          label.append(name, status);
+          closingTasks.append(input, label);
+          setTaskAvailability(id, isScheduleAvailable(task.schedule_type, today));
+        });
+
+        inventoryTask = Array.from(closingTasks.querySelectorAll('input[name="cl_task"]'))
+          .find((task) => task.value === 'Inventory milk, tea, coffee, pastries');
+        cashTask = Array.from(closingTasks.querySelectorAll('input[name="cl_task"]'))
+          .find((task) => task.value === 'Close out cash drawer');
+
+        if (!inventoryTask || !cashTask) {
+          throw new Error('Closing task data must include Inventory and Close out cash drawer.');
+        }
+
+        bindClosingTaskControls();
+        toggleInventory();
+        toggleCashQuestion();
+      }
+
+      async function loadClosingTasks() {
+        const url = `${SUPABASE_URL}/rest/v1/closeout_tasks?select=id,label,schedule_type&report_type=eq.closing&is_visible=eq.true&order=sort_order.asc`;
+        try {
+          const response = await fetch(url, {
+            headers: {
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+            }
+          });
+          if (!response.ok) throw new Error(`Closing task request failed: ${response.status}`);
+          const tasks = await response.json();
+          if (tasks.length > 0) renderClosingTasks(tasks);
+        } catch (error) {
+          console.error(error);
+        }
+      }
 
       function showReport(reportName) {
         const isOpening = reportName === 'opening';
@@ -355,24 +426,24 @@
           inventoryItems.every((item) => item.querySelector('input[type="radio"]:checked'));
       }
 
-      function validatePasscode() {
-        // Enforce shared passcode (case-sensitive)
-        return passcodeInput && passcodeInput.value.trim() === 'BucketIsCool';
-      }
-
-      async function submitForm(endpoint, payloadObj, statusEl) {
+      async function submitReport(payload, statusEl) {
         statusEl.textContent = '';
         try {
-          const data = new FormData();
-          Object.keys(payloadObj).forEach(k=> data.append(k, payloadObj[k]));
-          const res = await fetch(endpoint, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
+          const res = await fetch(CLOSEOUT_REPORT_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
           if (res.ok) {
             statusEl.innerHTML = '<div class="success">Report submitted. A confirmation email has been sent.</div>';
             return true;
           } else {
-            const txt = await res.text();
-            console.error('submit error', res.status, txt);
-            statusEl.textContent = 'Submission failed. Please try again or notify a manager.';
+            if (res.status === 401) {
+              statusEl.textContent = 'Incorrect passcode.';
+            } else {
+              console.error('submit error', res.status, await res.text());
+              statusEl.textContent = 'Submission failed. Please try again or notify a manager.';
+            }
             return false;
           }
         } catch (err) {
@@ -383,19 +454,22 @@
       }
 
       document.getElementById('opening-submit').addEventListener('click', async function(){
-        if (!validatePasscode()) { openingStatus.textContent = 'Incorrect passcode'; return; }
+        const password = passcodeInput.value.trim();
+        if (!password) { openingStatus.textContent = 'Please enter the passcode.'; return; }
         const baristaName = baristaNameInput.value.trim();
         const payload = {
+          password,
+          report_type: 'opening',
           barista_name: baristaName,
-          "What wasn't done": incompleteTaskSummary(openingForm, 'op_task'),
-          _subject: 'Opening Report - ' + (baristaName || 'Unknown')
+          what_wasnt_done: incompleteTaskSummary(openingForm, 'op_task')
         };
-        const ok = await submitForm(OPENING_ENDPOINT, payload, openingStatus);
+        const ok = await submitReport(payload, openingStatus);
         if (ok) openingForm.reset();
       });
 
       document.getElementById('closing-submit').addEventListener('click', async function(){
-        if (!validatePasscode()) { closingStatus.textContent = 'Incorrect passcode'; return; }
+        const password = passcodeInput.value.trim();
+        if (!password) { closingStatus.textContent = 'Please enter the passcode.'; return; }
         if (!inventoryIsComplete()) {
           closingStatus.textContent = 'Please complete the inventory before submitting the closing report.';
           return;
@@ -413,14 +487,15 @@
           return `${item.dataset.item}: ${status.value}${estimate ? ` (${estimate})` : ''}`;
         }).filter(Boolean);
         const payload = {
+          password,
+          report_type: 'closing',
           barista_name: baristaName,
-          "What wasn't done": incompleteTaskSummary(closingForm, 'cl_task'),
+          what_wasnt_done: incompleteTaskSummary(closingForm, 'cl_task'),
           cash_drawer_difference: cashTask.checked ? cashAmountInput.value : '',
           inventory: inventory.join('\n'),
-          notes: notes,
-          _subject: 'Closing Report - ' + (baristaName || 'Unknown')
+          notes: notes
         };
-        const ok = await submitForm(CLOSING_ENDPOINT, payload, closingStatus);
+        const ok = await submitReport(payload, closingStatus);
         if (ok) {
           closingForm.reset();
           toggleInventory();

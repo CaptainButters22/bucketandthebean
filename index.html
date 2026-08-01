@@ -289,10 +289,12 @@
       (function(){
         // seed events list (we'll add recurring events programmatically)
         const events = [];
-        // Add the current artist's name and contact details here each month.
-        const artistHighlights = {
-          default: { name: 'Artist name', contact: 'Contact information' }
-        };
+      const SUPABASE_URL = 'https://ggqkabtiwlyvyjdbccjv.supabase.co';
+      const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DJtzwlEdTev6JjY6ikrcaw_UwKWregs';
+      const DEFAULT_ARTIST_HIGHLIGHT = {
+        name: 'Artist name',
+        contact: 'Contact information'
+      };
 
         // Add recurring events for a given month
         // Muffins & Mahjong -> Every Thursday, 9:00 AM - 11:00 AM
@@ -316,6 +318,35 @@
         }
 
         const tooltip = document.getElementById('tooltip');
+
+        function renderArtistHighlight(highlight = DEFAULT_ARTIST_HIGHLIGHT) {
+          document.getElementById('artist-highlight-name').textContent = highlight.name;
+          document.getElementById('artist-highlight-contact').textContent = highlight.contact;
+        }
+
+        async function loadArtistHighlight(year, month) {
+          const monthDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+          const url = `${SUPABASE_URL}/rest/v1/artist_highlights?select=artist_name,contact_info&is_published=eq.true&month=eq.${monthDate}&limit=1`;
+
+          renderArtistHighlight();
+          try {
+            const response = await fetch(url, {
+              headers: {
+                apikey: SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+              }
+            });
+            if (!response.ok) throw new Error(`Artist highlight request failed: ${response.status}`);
+            const [highlight] = await response.json();
+            if (!highlight) return;
+            renderArtistHighlight({
+              name: highlight.artist_name || DEFAULT_ARTIST_HIGHLIGHT.name,
+              contact: highlight.contact_info || DEFAULT_ARTIST_HIGHLIGHT.contact
+            });
+          } catch (error) {
+            console.error(error);
+          }
+        }
 
         function renderCalendar(year, month) {
           const cal = document.getElementById('calendar');
@@ -395,9 +426,6 @@
           }
           const monthLabel = document.getElementById('month-label');
           monthLabel.textContent = new Date(year, month, 1).toLocaleString(undefined, { month: 'long', year: 'numeric' });
-          const artistHighlight = artistHighlights[`${year}-${String(month + 1).padStart(2, '0')}`] || artistHighlights.default;
-          document.getElementById('artist-highlight-name').textContent = artistHighlight.name;
-          document.getElementById('artist-highlight-contact').textContent = artistHighlight.contact;
         }
 
         // Modal for click -> show full event list
@@ -454,6 +482,7 @@
           hideDayModal();
           addRecurringEvents(curYear, curMonth);
           renderCalendar(curYear, curMonth);
+          loadArtistHighlight(curYear, curMonth);
           cal.classList.remove('is-refreshing');
           requestAnimationFrame(() => cal.classList.add('is-refreshing'));
         }
