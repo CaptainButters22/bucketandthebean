@@ -1,7 +1,7 @@
 // Supabase Edge Function: closeout-report
-// Accepts closeout submissions, verifies password server-side, forwards to Formspree.
+// Accepts report submissions, checks the shared anti-spam passcode, and forwards to Formspree.
 
-import { createClient } from "npm:@supabase/supabase-js@2";
+const REPORT_PASSCODE = "BucketIsCool";
 
 const corsOrigins = new Set([
   "https://bucketandthebean.com",
@@ -73,51 +73,21 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Missing or invalid fields" }, 400, corsOrigin);
   }
 
-  // Closing-only optional fields.
+  if (password !== REPORT_PASSCODE) {
+    return jsonResponse({ error: "Unauthorized" }, 401, corsOrigin);
+  }
+
+  // Optional report fields.
   const inventory: unknown = payload?.inventory;
   const cash_drawer_difference: unknown = payload?.cash_drawer_difference;
   const notes: unknown = payload?.notes;
 
-  if (report_type === "closing") {
-    if (
-      typeof inventory !== "string" ||
-      typeof cash_drawer_difference !== "string" ||
-      typeof notes !== "string"
-    ) {
-      return jsonResponse({ error: "Missing or invalid closing fields" }, 400, corsOrigin);
-    }
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error("Required Supabase credentials are unavailable.");
-    return jsonResponse({ error: "Password verification is unavailable" }, 500, corsOrigin);
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
-
-  // Verify password using the SECURITY DEFINER function.
-  let ok = false;
-  try {
-    const { data, error } = await supabaseAdmin.rpc("verify_closeout_password", {
-      p_password: password,
-    });
-
-    if (error) {
-      ok = false;
-    } else {
-      ok = data === true;
-    }
-  } catch {
-    ok = false;
-  }
-
-  if (!ok) {
-    // Always use 401 for verification failure.
-    return jsonResponse({ error: "Unauthorized" }, 401, corsOrigin);
+  if (
+    typeof notes !== "string" ||
+    (report_type === "closing" &&
+      (typeof inventory !== "string" || typeof cash_drawer_difference !== "string"))
+  ) {
+    return jsonResponse({ error: "Missing or invalid report fields" }, 400, corsOrigin);
   }
 
   // Forward to Formspree endpoint.
@@ -134,8 +104,8 @@ Deno.serve(async (req) => {
   if (report_type === "closing") {
     form.set("inventory", inventory);
     form.set("cash_drawer_difference", cash_drawer_difference);
-    form.set("notes", notes);
   }
+  form.set("notes", notes);
 
   const ffRes = await fetch(formspreeUrl, {
     method: "POST",

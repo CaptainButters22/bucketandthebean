@@ -130,6 +130,10 @@
           <input type="checkbox" id="op-water-plant" name="op_task" value="Water plant (about 12oz water)"><label for="op-water-plant" class="task-bubble"><span class="name">* Water plant (about 12oz)</span><span class="status"></span></label>
           <input type="checkbox" id="op-preclose-thermostat" name="op_task" value="Check thermostat before closing"><label for="op-preclose-thermostat" class="task-bubble"><span class="name">** Check thermostat</span><span class="status"></span></label>
         </div>
+        <div style="margin-top:12px;">
+          <label for="opening-notes">General notes (optional)</label><br />
+          <textarea id="opening-notes" name="opening-notes" rows="4" placeholder="Share anything else that should be included with this opening report."></textarea>
+        </div>
         <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
           <button class="btn btn-primary" type="button" id="opening-submit">Submit opening report</button>
           <div id="opening-status" aria-live="polite"></div>
@@ -193,7 +197,7 @@
       </form>
     </section>
 
-    <div style="margin-top:18px; font-size:0.9rem; color:#666">Reports are submitted securely. Provide the correct passcode before submitting.</div>
+    <div style="margin-top:18px; font-size:0.9rem; color:#666">Provide the correct passcode before submitting.</div>
   </div>
 
   <script>
@@ -218,6 +222,7 @@
       const closingReport = document.getElementById('closing-report');
 
       const CLOSEOUT_REPORT_ENDPOINT = 'https://ggqkabtiwlyvyjdbccjv.supabase.co/functions/v1/closeout-report';
+      const REPORT_PASSCODE = 'BucketIsCool';
       const SUPABASE_URL = 'https://ggqkabtiwlyvyjdbccjv.supabase.co';
       const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_DJtzwlEdTev6JjY6ikrcaw_UwKWregs';
       const INVENTORY_ITEMS = [
@@ -534,12 +539,14 @@
       document.getElementById('opening-submit').addEventListener('click', async function(){
         const password = passcodeInput.value.trim();
         if (!password) { openingStatus.textContent = 'Please enter the passcode.'; return; }
+        if (password !== REPORT_PASSCODE) { openingStatus.textContent = 'Incorrect passcode.'; return; }
         const baristaName = baristaNameInput.value.trim();
         const payload = {
           password,
           report_type: 'opening',
           barista_name: baristaName,
-          what_wasnt_done: incompleteTaskSummary(openingForm, 'op_task')
+          what_wasnt_done: incompleteTaskSummary(openingForm, 'op_task'),
+          notes: document.getElementById('opening-notes').value.trim()
         };
         const ok = await submitReport(payload, openingStatus);
         if (ok) openingForm.reset();
@@ -548,6 +555,7 @@
       document.getElementById('closing-submit').addEventListener('click', async function(){
         const password = passcodeInput.value.trim();
         if (!password) { closingStatus.textContent = 'Please enter the passcode.'; return; }
+        if (password !== REPORT_PASSCODE) { closingStatus.textContent = 'Incorrect passcode.'; return; }
         if (!inventoryIsComplete()) {
           closingStatus.textContent = 'Please complete the inventory before submitting the closing report.';
           return;
