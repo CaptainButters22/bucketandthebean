@@ -139,17 +139,24 @@
                 <select id="task-report-type">
                   <option value="closing">Closing</option>
                   <option value="opening">Opening</option>
+                  <option value="inventory">Inventory</option>
                 </select>
               </label>
               <label for="task-label">Task
                 <input id="task-label" type="text" required />
               </label>
-              <label for="task-schedule">Schedule
+              <label id="task-schedule-field" for="task-schedule">Schedule
                 <select id="task-schedule">
                   <option value="always">Always</option>
                   <option value="monday">Mondays</option>
                   <option value="every_other_day">Every other day</option>
                   <option value="every_other_wednesday">Every other Wednesday</option>
+                </select>
+              </label>
+              <label id="inventory-category-field" for="inventory-category" hidden>Category
+                <select id="inventory-category">
+                  <option value="standard">Standard</option>
+                  <option value="flavor">Flavor</option>
                 </select>
               </label>
             </div>
@@ -172,6 +179,8 @@
         const taskReportType = document.getElementById('task-report-type');
         const taskHeading = document.getElementById('task-heading');
         const addTaskButton = document.getElementById('add-task-button');
+        const taskScheduleField = document.getElementById('task-schedule-field');
+        const inventoryCategoryField = document.getElementById('inventory-category-field');
         const eventForm = document.getElementById('event-form');
         const eventList = document.getElementById('event-list');
         const pastEventsSection = document.getElementById('past-events-section');
@@ -199,34 +208,51 @@
         }
 
         let taskGroups = { opening: [], closing: [] };
+        let inventoryItems = [];
         let events = [];
 
         function selectedReportLabel() {
-          return taskReportType.value === 'opening' ? 'Opening' : 'Closing';
+          return taskReportType.value === 'opening'
+            ? 'Opening'
+            : taskReportType.value === 'inventory'
+              ? 'Inventory'
+              : 'Closing';
         }
 
         function renderTasks() {
           const reportType = taskReportType.value;
-          const tasks = taskGroups[reportType];
+          const isInventory = reportType === 'inventory';
+          const tasks = isInventory ? inventoryItems : taskGroups[reportType];
           const reportLabel = selectedReportLabel();
-          taskHeading.textContent = `${reportLabel} Report Tasks`;
-          addTaskButton.textContent = `Add ${reportLabel} task`;
+          taskHeading.textContent = isInventory ? 'Inventory List' : `${reportLabel} Report Tasks`;
+          addTaskButton.textContent = isInventory ? 'Add inventory item' : `Add ${reportLabel} task`;
+          taskScheduleField.hidden = isInventory;
+          inventoryCategoryField.hidden = !isInventory;
           taskList.replaceChildren();
           tasks.forEach((task) => {
             const item = document.createElement('li');
             const text = document.createElement('span');
-            text.textContent = `${task.label} (${task.schedule_type.replaceAll('_', ' ')})`;
+            text.textContent = isInventory
+              ? `${task.label} (${task.category === 'flavor' ? 'Flavor' : 'Standard'})`
+              : `${task.label} (${task.schedule_type.replaceAll('_', ' ')})`;
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'danger';
             remove.textContent = 'Remove';
             remove.addEventListener('click', async () => {
-              if (!confirm(`Remove "${task.label}" from the ${reportLabel} Report?`)) return;
+              const destination = isInventory ? 'the Inventory List' : `the ${reportLabel} Report`;
+              if (!confirm(`Remove "${task.label}" from ${destination}?`)) return;
               try {
-                const data = await request('remove_task', { task_id: task.id, report_type: reportType });
-                taskGroups = data.tasks;
+                const data = isInventory
+                  ? await request('remove_inventory_item', { item_id: task.id })
+                  : await request('remove_task', { task_id: task.id, report_type: reportType });
+                if (isInventory) {
+                  inventoryItems = data.inventory_items;
+                } else {
+                  taskGroups = data.tasks;
+                }
                 renderTasks();
-                setMessage(taskMessage, `${reportLabel} task removed.`);
+                setMessage(taskMessage, isInventory ? 'Inventory item removed.' : `${reportLabel} task removed.`);
               } catch (error) {
                 setMessage(taskMessage, error.message, true);
               }
@@ -293,6 +319,7 @@
           document.getElementById('artist-name').value = data.artist?.artist_name || '';
           document.getElementById('artist-contact').value = data.artist?.contact_info || '';
           taskGroups = data.tasks;
+          inventoryItems = data.inventory_items;
           events = data.events;
           renderTasks();
           renderEvents();
@@ -336,18 +363,28 @@
         taskForm.addEventListener('submit', async (event) => {
           event.preventDefault();
           const reportType = taskReportType.value;
+          const isInventory = reportType === 'inventory';
           const reportLabel = selectedReportLabel();
           try {
-            const data = await request('add_task', {
-              report_type: reportType,
-              label: document.getElementById('task-label').value.trim(),
-              schedule_type: document.getElementById('task-schedule').value
-            });
+            const data = isInventory
+              ? await request('add_inventory_item', {
+                label: document.getElementById('task-label').value.trim(),
+                category: document.getElementById('inventory-category').value
+              })
+              : await request('add_task', {
+                report_type: reportType,
+                label: document.getElementById('task-label').value.trim(),
+                schedule_type: document.getElementById('task-schedule').value
+              });
             document.getElementById('task-label').value = '';
             document.getElementById('task-schedule').value = 'always';
-            taskGroups = data.tasks;
+            if (isInventory) {
+              inventoryItems = data.inventory_items;
+            } else {
+              taskGroups = data.tasks;
+            }
             renderTasks();
-            setMessage(taskMessage, `${reportLabel} task added.`);
+            setMessage(taskMessage, isInventory ? 'Inventory item added.' : `${reportLabel} task added.`);
           } catch (error) {
             setMessage(taskMessage, error.message, true);
           }
