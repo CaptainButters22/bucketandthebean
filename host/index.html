@@ -118,6 +118,7 @@
         const loginPanel = document.getElementById('login-panel');
         const dashboard = document.getElementById('dashboard');
         const taskList = document.getElementById('task-list');
+        const taskForm = document.getElementById('task-form');
         const loginMessage = document.getElementById('login-message');
         const artistMessage = document.getElementById('artist-message');
         const taskMessage = document.getElementById('task-message');
@@ -206,15 +207,14 @@
           }
         });
 
-        document.getElementById('task-form').addEventListener('submit', async (event) => {
+        taskForm.addEventListener('submit', async (event) => {
           event.preventDefault();
-          const form = event.currentTarget;
           try {
             const data = await request('add_closing_task', {
               label: document.getElementById('task-label').value.trim(),
               schedule_type: document.getElementById('task-schedule').value
             });
-            form.reset();
+            taskForm.reset();
             renderTasks(data.tasks);
             setMessage(taskMessage, 'Closing task added.');
           } catch (error) {
