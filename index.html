@@ -348,6 +348,44 @@
           }
         }
 
+        async function loadCalendarEvents(year, month) {
+          const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+          const nextMonth = new Date(year, month + 1, 1);
+          const endDate = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description&is_published=eq.true&event_date=gte.${startDate}&event_date=lt.${endDate}&order=event_date.asc`;
+
+          try {
+            const response = await fetch(url, {
+              headers: {
+                apikey: SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+              }
+            });
+            if (!response.ok) throw new Error(`Calendar event request failed: ${response.status}`);
+            const databaseEvents = await response.json();
+            if (year !== curYear || month !== curMonth) return;
+            events.push(...databaseEvents.map((event) => ({
+              date: event.event_date,
+              title: event.title,
+              time: formatEventTime(event.start_time, event.end_time),
+              desc: event.description
+            })));
+            renderCalendar(year, month);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+
+        function formatEventTime(startTime, endTime) {
+          const format = (time) => {
+            if (!time) return '';
+            const [hours, minutes] = time.split(':').map(Number);
+            const date = new Date(2000, 0, 1, hours, minutes);
+            return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          };
+          return [format(startTime), format(endTime)].filter(Boolean).join(' - ');
+        }
+
         function renderCalendar(year, month) {
           const cal = document.getElementById('calendar');
           cal.innerHTML = '';
@@ -438,7 +476,13 @@
           modalEvents.innerHTML = '';
           evts.forEach(e=>{
             const li = document.createElement('li');
-            li.innerHTML = '<strong>' + e.title + '</strong> <br><small>' + e.time + '</small><div>' + e.desc + '</div>';
+            const title = document.createElement('strong');
+            title.textContent = e.title;
+            const time = document.createElement('small');
+            time.textContent = e.time;
+            const description = document.createElement('div');
+            description.textContent = e.desc;
+            li.append(title, document.createElement('br'), time, description);
             modalEvents.appendChild(li);
           });
           dayModal.classList.add('active');
@@ -455,11 +499,20 @@
 
         function showTooltip(cell, evts) {
           if (!evts || !evts.length) return;
-          tooltip.innerHTML = '<h4>' + evts.length + ' event' + (evts.length>1?'s':'') + '</h4>';
+          tooltip.replaceChildren();
+          const heading = document.createElement('h4');
+          heading.textContent = `${evts.length} event${evts.length > 1 ? 's' : ''}`;
+          tooltip.appendChild(heading);
           const ul = document.createElement('ul');
           evts.forEach(e=>{
             const li = document.createElement('li');
-            li.innerHTML = '<strong>' + e.title + '</strong><br><small>' + e.time + '</small><div>' + e.desc + '</div>';
+            const title = document.createElement('strong');
+            title.textContent = e.title;
+            const time = document.createElement('small');
+            time.textContent = e.time;
+            const description = document.createElement('div');
+            description.textContent = e.desc;
+            li.append(title, document.createElement('br'), time, description);
             ul.appendChild(li);
           });
           tooltip.appendChild(ul);
@@ -483,6 +536,7 @@
           addRecurringEvents(curYear, curMonth);
           renderCalendar(curYear, curMonth);
           loadArtistHighlight(curYear, curMonth);
+          loadCalendarEvents(curYear, curMonth);
           cal.classList.remove('is-refreshing');
           requestAnimationFrame(() => cal.classList.add('is-refreshing'));
         }

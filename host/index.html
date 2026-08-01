@@ -22,8 +22,9 @@
       .panel { margin-bottom: 1.5rem; padding: 1.5rem; background: var(--surface); border-radius: 0.75rem; box-shadow: 0 8px 24px rgb(51 42 36 / 10%); }
       h1, h2 { margin-top: 0; }
       label { display: grid; gap: 0.35rem; font-weight: 700; }
-      input, select, button { font: inherit; }
-      input, select { width: 100%; padding: 0.7rem; border: 1px solid #b9afa8; border-radius: 0.4rem; }
+      input, select, textarea, button { font: inherit; }
+      input, select, textarea { width: 100%; padding: 0.7rem; border: 1px solid #b9afa8; border-radius: 0.4rem; }
+      textarea { min-height: 5rem; resize: vertical; }
       button { padding: 0.7rem 1rem; border: 0; border-radius: 0.4rem; background: var(--accent); color: #fff; cursor: pointer; font-weight: 700; }
       button.secondary { background: transparent; color: var(--accent); border: 1px solid currentColor; }
       button.danger { background: var(--danger); }
@@ -115,6 +116,36 @@
           <p id="task-message" class="message" aria-live="polite"></p>
           <ul id="task-list" class="task-list" aria-live="polite"></ul>
         </section>
+
+        <section class="panel">
+          <h2>Calendar Events</h2>
+          <form id="event-form">
+            <div class="field-grid">
+              <label for="event-date">Date
+                <input id="event-date" type="date" required />
+              </label>
+              <label for="event-title">Event title
+                <input id="event-title" type="text" required />
+              </label>
+            </div>
+            <div class="field-grid">
+              <label for="event-start-time">Start time <span>(optional)</span>
+                <input id="event-start-time" type="time" />
+              </label>
+              <label for="event-end-time">End time <span>(optional)</span>
+                <input id="event-end-time" type="time" />
+              </label>
+            </div>
+            <label for="event-description">Description <span>(optional)</span>
+              <textarea id="event-description"></textarea>
+            </label>
+            <div class="actions" style="margin-top: 1rem;">
+              <button type="submit">Add event</button>
+            </div>
+          </form>
+          <p id="event-message" class="message" aria-live="polite"></p>
+          <ul id="event-list" class="task-list" aria-live="polite"></ul>
+        </section>
       </section>
     </main>
     <script>
@@ -128,9 +159,12 @@
         const taskReportType = document.getElementById('task-report-type');
         const taskHeading = document.getElementById('task-heading');
         const addTaskButton = document.getElementById('add-task-button');
+        const eventForm = document.getElementById('event-form');
+        const eventList = document.getElementById('event-list');
         const loginMessage = document.getElementById('login-message');
         const artistMessage = document.getElementById('artist-message');
         const taskMessage = document.getElementById('task-message');
+        const eventMessage = document.getElementById('event-message');
 
         function setMessage(element, message, isError = false) {
           element.textContent = message;
@@ -149,6 +183,7 @@
         }
 
         let taskGroups = { opening: [], closing: [] };
+        let events = [];
 
         function selectedReportLabel() {
           return taskReportType.value === 'opening' ? 'Opening' : 'Closing';
@@ -185,13 +220,43 @@
           });
         }
 
+        function renderEvents() {
+          eventList.replaceChildren();
+          events.forEach((event) => {
+            const item = document.createElement('li');
+            const text = document.createElement('span');
+            const time = [event.start_time, event.end_time].filter(Boolean).join(' - ');
+            const details = [event.event_date, time].filter(Boolean).join(' - ');
+            text.textContent = details ? `${event.title} (${details})` : event.title;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'danger';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', async () => {
+              if (!confirm(`Remove "${event.title}" from the calendar?`)) return;
+              try {
+                const data = await request('remove_event', { event_id: event.id });
+                events = data.events;
+                renderEvents();
+                setMessage(eventMessage, 'Calendar event removed.');
+              } catch (error) {
+                setMessage(eventMessage, error.message, true);
+              }
+            });
+            item.append(text, remove);
+            eventList.append(item);
+          });
+        }
+
         async function loadDashboard() {
           const month = document.getElementById('artist-month').value;
           const data = await request('load', { month });
           document.getElementById('artist-name').value = data.artist?.artist_name || '';
           document.getElementById('artist-contact').value = data.artist?.contact_info || '';
           taskGroups = data.tasks;
+          events = data.events;
           renderTasks();
+          renderEvents();
         }
 
         document.getElementById('login-form').addEventListener('submit', async (event) => {
@@ -252,6 +317,29 @@
         taskReportType.addEventListener('change', () => {
           taskMessage.textContent = '';
           renderTasks();
+        });
+
+        eventForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          try {
+            const data = await request('add_event', {
+              event_date: document.getElementById('event-date').value,
+              title: document.getElementById('event-title').value.trim(),
+              start_time: document.getElementById('event-start-time').value,
+              end_time: document.getElementById('event-end-time').value,
+              description: document.getElementById('event-description').value.trim()
+            });
+            document.getElementById('event-date').value = '';
+            document.getElementById('event-title').value = '';
+            document.getElementById('event-start-time').value = '';
+            document.getElementById('event-end-time').value = '';
+            document.getElementById('event-description').value = '';
+            events = data.events;
+            renderEvents();
+            setMessage(eventMessage, 'Calendar event added.');
+          } catch (error) {
+            setMessage(eventMessage, error.message, true);
+          }
         });
 
         document.getElementById('logout-button').addEventListener('click', () => {
