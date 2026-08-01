@@ -49,6 +49,16 @@ const closingTasks = [
   ['Inventory milk, tea, coffee, pastries', 'always']
 ];
 
+const inventoryDefaults = [
+  ['Whole milk', 'standard'], ['Lactaid 1%', 'standard'], ['Oat', 'standard'], ['Almond', 'standard'],
+  ['Cold brew beans', 'standard'], ['Teas', 'standard'], ['Espresso', 'standard'], ['Decaf espresso', 'standard'],
+  ['Light Pour Over', 'standard'], ['Dark Pour Over', 'standard'], ['Decaf Pour Over', 'standard'],
+  ['Vanilla Chai', 'standard'], ['Black Scottie Chai', 'standard'], ['Light Cream', 'standard'],
+  ['Heavy Cream', 'standard'], ['Cold Brew Concentrate', 'standard'], ['Baked Goods', 'standard'],
+  ['Vanilla', 'flavor'], ['Lavender', 'flavor'], ['Caramel', 'flavor'], ['Simple Syrup', 'flavor'],
+  ['Honey Cinnamon', 'flavor'], ['Maple', 'flavor'], ['Chocolate', 'flavor'], ['Autocrat', 'flavor']
+];
+
 function corsHeaders(request: Request) {
   const origin = request.headers.get('Origin');
   return {
@@ -90,6 +100,10 @@ function validSchedule(value: unknown): value is string {
 
 function validReportType(value: unknown): value is 'opening' | 'closing' {
   return value === 'opening' || value === 'closing';
+}
+
+function validInventoryCategory(value: unknown): value is 'standard' | 'flavor' {
+  return value === 'standard' || value === 'flavor';
 }
 
 Deno.serve(async (request) => {
@@ -164,17 +178,46 @@ Deno.serve(async (request) => {
     return data ?? [];
   }
 
+  async function listInventoryItems() {
+    const { data: existing, error } = await supabase
+      .from('inventory_items')
+      .select('id,label,category,sort_order')
+      .eq('is_visible', true)
+      .order('sort_order');
+    if (error) throw error;
+    if (existing && existing.length > 0) return existing;
+
+    const { error: seedError } = await supabase.from('inventory_items').insert(
+      inventoryDefaults.map(([label, category], index) => ({
+        id: crypto.randomUUID(),
+        label,
+        category,
+        sort_order: index + 1,
+        is_visible: true
+      }))
+    );
+    if (seedError) throw seedError;
+    const { data: seeded, error: seededError } = await supabase
+      .from('inventory_items')
+      .select('id,label,category,sort_order')
+      .eq('is_visible', true)
+      .order('sort_order');
+    if (seededError) throw seededError;
+    return seeded ?? [];
+  }
+
   try {
     if (body.action === 'load') {
       if (!validMonth(body.month)) return json(request, { error: 'Invalid month' }, 400);
       const month = `${body.month}-01`;
-      const [{ data: artist, error: artistError }, tasks, events] = await Promise.all([
+      const [{ data: artist, error: artistError }, tasks, events, inventoryItems] = await Promise.all([
         supabase.from('artist_highlights').select('artist_name,contact_info').eq('month', month).maybeSingle(),
         taskGroups(),
-        listEvents()
+        listEvents(),
+        listInventoryItems()
       ]);
       if (artistError) throw artistError;
-      return json(request, { artist, tasks, events });
+      return json(request, { artist, tasks, events, inventory_items: inventoryItems });
     }
 
     if (body.action === 'save_artist_highlight') {
@@ -249,6 +292,30 @@ Deno.serve(async (request) => {
         .eq('report_type', body.report_type);
       if (error) throw error;
       return json(request, { tasks: await taskGroups() });
+    }
+
+    if (body.action === 'add_inventory_item') {
+      if (typeof body.label !== 'string' || !body.label.trim() || !validInventoryCategory(body.category)) {
+        return json(request, { error: 'An inventory item and valid category are required.' }, 400);
+      }
+      const inventoryItems = await listInventoryItems();
+      const maxOrder = inventoryItems.reduce((max, item) => Math.max(max, item.sort_order), 0);
+      const { error } = await supabase.from('inventory_items').insert({
+        id: crypto.randomUUID(),
+        label: body.label.trim(),
+        category: body.category,
+        sort_order: maxOrder + 1,
+        is_visible: true
+      });
+      if (error) throw error;
+      return json(request, { inventory_items: await listInventoryItems() });
+    }
+
+    if (body.action === 'remove_inventory_item') {
+      if (typeof body.item_id !== 'string') return json(request, { error: 'Invalid inventory item' }, 400);
+      const { error } = await supabase.from('inventory_items').delete().eq('id', body.item_id);
+      if (error) throw error;
+      return json(request, { inventory_items: await listInventoryItems() });
     }
 
     if (body.action === 'add_event') {
