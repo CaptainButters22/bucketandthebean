@@ -127,6 +127,13 @@
               <label for="event-title">Event title
                 <input id="event-title" type="text" required />
               </label>
+              <label for="event-recurrence">Frequency
+                <select id="event-recurrence">
+                  <option value="once">Single use</option>
+                  <option value="weekly">Every week</option>
+                  <option value="monthly">Every month</option>
+                </select>
+              </label>
             </div>
             <div class="field-grid">
               <label for="event-start-time">Start time <span>(optional)</span>
@@ -144,7 +151,12 @@
             </div>
           </form>
           <p id="event-message" class="message" aria-live="polite"></p>
+          <h3>Active events</h3>
           <ul id="event-list" class="task-list" aria-live="polite"></ul>
+          <details id="past-events-section" hidden>
+            <summary>Past single-use events (<span id="past-event-count">0</span>)</summary>
+            <ul id="past-event-list" class="task-list" aria-live="polite"></ul>
+          </details>
         </section>
       </section>
     </main>
@@ -161,6 +173,9 @@
         const addTaskButton = document.getElementById('add-task-button');
         const eventForm = document.getElementById('event-form');
         const eventList = document.getElementById('event-list');
+        const pastEventsSection = document.getElementById('past-events-section');
+        const pastEventCount = document.getElementById('past-event-count');
+        const pastEventList = document.getElementById('past-event-list');
         const loginMessage = document.getElementById('login-message');
         const artistMessage = document.getElementById('artist-message');
         const taskMessage = document.getElementById('task-message');
@@ -220,14 +235,27 @@
           });
         }
 
-        function renderEvents() {
-          eventList.replaceChildren();
-          events.forEach((event) => {
+        function todayDate() {
+          const today = new Date();
+          return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        }
+
+        function eventFrequencyLabel(event) {
+          return event.recurrence === 'weekly'
+            ? 'Every week'
+            : event.recurrence === 'monthly'
+              ? 'Every month'
+              : 'Single use';
+        }
+
+        function renderEventList(list, eventItems) {
+          list.replaceChildren();
+          eventItems.forEach((event) => {
             const item = document.createElement('li');
             const text = document.createElement('span');
             const time = [event.start_time, event.end_time].filter(Boolean).join(' - ');
             const details = [event.event_date, time].filter(Boolean).join(' - ');
-            text.textContent = details ? `${event.title} (${details})` : event.title;
+            text.textContent = details ? `${event.title} (${eventFrequencyLabel(event)}; ${details})` : `${event.title} (${eventFrequencyLabel(event)})`;
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'danger';
@@ -244,8 +272,18 @@
               }
             });
             item.append(text, remove);
-            eventList.append(item);
+            list.append(item);
           });
+        }
+
+        function renderEvents() {
+          const today = todayDate();
+          const activeEvents = events.filter((event) => event.recurrence !== 'once' || event.event_date >= today);
+          const pastEvents = events.filter((event) => event.recurrence === 'once' && event.event_date < today);
+          renderEventList(eventList, activeEvents);
+          renderEventList(pastEventList, pastEvents);
+          pastEventCount.textContent = String(pastEvents.length);
+          pastEventsSection.hidden = pastEvents.length === 0;
         }
 
         async function loadDashboard() {
@@ -325,12 +363,14 @@
             const data = await request('add_event', {
               event_date: document.getElementById('event-date').value,
               title: document.getElementById('event-title').value.trim(),
+              recurrence: document.getElementById('event-recurrence').value,
               start_time: document.getElementById('event-start-time').value,
               end_time: document.getElementById('event-end-time').value,
               description: document.getElementById('event-description').value.trim()
             });
             document.getElementById('event-date').value = '';
             document.getElementById('event-title').value = '';
+            document.getElementById('event-recurrence').value = 'once';
             document.getElementById('event-start-time').value = '';
             document.getElementById('event-end-time').value = '';
             document.getElementById('event-description').value = '';
