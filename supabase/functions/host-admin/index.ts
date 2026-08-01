@@ -80,6 +80,10 @@ function validOptionalTime(value: unknown): value is string {
   return typeof value === 'string' && (value === '' || /^\d{2}:\d{2}$/.test(value));
 }
 
+function validRecurrence(value: unknown): value is 'once' | 'weekly' | 'monthly' {
+  return value === 'once' || value === 'weekly' || value === 'monthly';
+}
+
 function validSchedule(value: unknown): value is string {
   return ['always', 'monday', 'every_other_day', 'every_other_wednesday'].includes(String(value));
 }
@@ -153,7 +157,7 @@ Deno.serve(async (request) => {
   async function listEvents() {
     const { data, error } = await supabase
       .from('calendar_events')
-      .select('id,title,event_date,start_time,end_time,description')
+      .select('id,title,event_date,start_time,end_time,description,recurrence')
       .order('event_date')
       .order('created_at');
     if (error) throw error;
@@ -251,6 +255,10 @@ Deno.serve(async (request) => {
       if (!validEventDate(body.event_date) || typeof body.title !== 'string' || !body.title.trim()) {
         return json(request, { error: 'An event title and valid date are required.' }, 400);
       }
+      const recurrence = body.recurrence ?? 'once';
+      if (!validRecurrence(recurrence)) {
+        return json(request, { error: 'Invalid event frequency.' }, 400);
+      }
       if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
@@ -258,6 +266,7 @@ Deno.serve(async (request) => {
         id: crypto.randomUUID(),
         title: body.title.trim(),
         event_date: body.event_date,
+        recurrence,
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),

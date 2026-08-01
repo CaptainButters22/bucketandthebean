@@ -349,10 +349,7 @@
         }
 
         async function loadCalendarEvents(year, month) {
-          const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-          const nextMonth = new Date(year, month + 1, 1);
-          const endDate = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
-          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description&is_published=eq.true&event_date=gte.${startDate}&event_date=lt.${endDate}&order=event_date.asc`;
+          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence&is_published=eq.true&order=event_date.asc`;
 
           try {
             const response = await fetch(url, {
@@ -364,16 +361,46 @@
             if (!response.ok) throw new Error(`Calendar event request failed: ${response.status}`);
             const databaseEvents = await response.json();
             if (year !== curYear || month !== curMonth) return;
-            events.push(...databaseEvents.map((event) => ({
-              date: event.event_date,
-              title: event.title,
-              time: formatEventTime(event.start_time, event.end_time),
-              desc: event.description
-            })));
+            databaseEvents.forEach((event) => {
+              events.push(...calendarEventOccurrences(event, year, month));
+            });
             renderCalendar(year, month);
           } catch (error) {
             console.error(error);
           }
+        }
+
+        function calendarEventOccurrences(event, year, month) {
+          const startDate = new Date(`${event.event_date}T00:00:00`);
+          const recurrence = event.recurrence || 'once';
+          const toCalendarEvent = (date) => ({
+            date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+            title: event.title,
+            time: formatEventTime(event.start_time, event.end_time),
+            desc: event.description || ''
+          });
+
+          if (recurrence === 'once') {
+            return startDate.getFullYear() === year && startDate.getMonth() === month
+              ? [toCalendarEvent(startDate)]
+              : [];
+          }
+
+          if (recurrence === 'weekly') {
+            const occurrences = [];
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day += 1) {
+              const occurrence = new Date(year, month, day);
+              if (occurrence >= startDate && occurrence.getDay() === startDate.getDay()) {
+                occurrences.push(toCalendarEvent(occurrence));
+              }
+            }
+            return occurrences;
+          }
+
+          const day = Math.min(startDate.getDate(), new Date(year, month + 1, 0).getDate());
+          const occurrence = new Date(year, month, day);
+          return occurrence >= startDate ? [toCalendarEvent(occurrence)] : [];
         }
 
         function formatEventTime(startTime, endTime) {
