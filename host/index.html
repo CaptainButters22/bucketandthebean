@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Host Dashboard | Bucket &amp; the Bean</title>
+    <style>
+      :root {
+        --background: #f7f2ed;
+        --surface: #fff;
+        --text: #332a24;
+        --accent: #7c533d;
+        --accent-light: #8dacc0;
+        --danger: #9f2f2f;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--background); color: var(--text); font-family: Inter, system-ui, sans-serif; line-height: 1.5; }
+      header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 2rem; background: var(--accent-light); }
+      header a { color: inherit; font-weight: 700; text-decoration: none; }
+      main { max-width: 58rem; margin: 0 auto; padding: 2rem; }
+      .panel { margin-bottom: 1.5rem; padding: 1.5rem; background: var(--surface); border-radius: 0.75rem; box-shadow: 0 8px 24px rgb(51 42 36 / 10%); }
+      h1, h2 { margin-top: 0; }
+      label { display: grid; gap: 0.35rem; font-weight: 700; }
+      input, select, button { font: inherit; }
+      input, select { width: 100%; padding: 0.7rem; border: 1px solid #b9afa8; border-radius: 0.4rem; }
+      button { padding: 0.7rem 1rem; border: 0; border-radius: 0.4rem; background: var(--accent); color: #fff; cursor: pointer; font-weight: 700; }
+      button.secondary { background: transparent; color: var(--accent); border: 1px solid currentColor; }
+      button.danger { background: var(--danger); }
+      .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+      .actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+      .task-list { display: grid; gap: 0.75rem; padding: 0; list-style: none; }
+      .task-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.75rem; border: 1px solid #ddd; border-radius: 0.5rem; }
+      .message { min-height: 1.5rem; margin-top: 0.75rem; font-weight: 700; }
+      .error { color: var(--danger); }
+      .success { color: #276636; }
+      [hidden] { display: none !important; }
+      @media (max-width: 600px) {
+        header, .task-list li { align-items: stretch; flex-direction: column; }
+        .field-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="/">Bucket &amp; the Bean</a>
+      <a href="/closeout.html">Closeout Checklist</a>
+    </header>
+    <main>
+      <section id="login-panel" class="panel">
+        <h1>Host Dashboard</h1>
+        <p>Enter the host password to manage the monthly artist highlight and Closing Report tasks.</p>
+        <form id="login-form">
+          <label for="host-password">Host password
+            <input id="host-password" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="actions" style="margin-top: 1rem;">
+            <button type="submit">Unlock dashboard</button>
+          </div>
+        </form>
+        <p id="login-message" class="message" aria-live="polite"></p>
+      </section>
+
+      <section id="dashboard" hidden>
+        <div class="actions" style="justify-content: space-between; margin-bottom: 1rem;">
+          <h1 style="margin: 0;">Host Dashboard</h1>
+          <button id="logout-button" class="secondary" type="button">Lock dashboard</button>
+        </div>
+
+        <section class="panel">
+          <h2>Artist Highlight</h2>
+          <form id="artist-form">
+            <div class="field-grid">
+              <label for="artist-month">Month
+                <input id="artist-month" type="month" required />
+              </label>
+              <label for="artist-name">Artist name
+                <input id="artist-name" type="text" required />
+              </label>
+            </div>
+            <label for="artist-contact">Contact information
+              <input id="artist-contact" type="text" required />
+            </label>
+            <div class="actions" style="margin-top: 1rem;">
+              <button type="submit">Save artist highlight</button>
+            </div>
+          </form>
+          <p id="artist-message" class="message" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <h2>Closing Report Tasks</h2>
+          <form id="task-form">
+            <div class="field-grid">
+              <label for="task-label">Task
+                <input id="task-label" type="text" required />
+              </label>
+              <label for="task-schedule">Schedule
+                <select id="task-schedule">
+                  <option value="always">Always</option>
+                  <option value="monday">Mondays</option>
+                  <option value="every_other_day">Every other day</option>
+                  <option value="every_other_wednesday">Every other Wednesday</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit">Add Closing task</button>
+          </form>
+          <p id="task-message" class="message" aria-live="polite"></p>
+          <ul id="task-list" class="task-list" aria-live="polite"></ul>
+        </section>
+      </section>
+    </main>
+    <script>
+      (() => {
+        const HOST_ADMIN_ENDPOINT = 'https://ggqkabtiwlyvyjdbccjv.supabase.co/functions/v1/host-admin';
+        let password = '';
+        const loginPanel = document.getElementById('login-panel');
+        const dashboard = document.getElementById('dashboard');
+        const taskList = document.getElementById('task-list');
+        const loginMessage = document.getElementById('login-message');
+        const artistMessage = document.getElementById('artist-message');
+        const taskMessage = document.getElementById('task-message');
+
+        function setMessage(element, message, isError = false) {
+          element.textContent = message;
+          element.className = `message ${isError ? 'error' : 'success'}`;
+        }
+
+        async function request(action, payload = {}) {
+          const response = await fetch(HOST_ADMIN_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, password, ...payload })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `Request failed: ${response.status}`);
+          return data;
+        }
+
+        function renderTasks(tasks) {
+          taskList.replaceChildren();
+          tasks.forEach((task) => {
+            const item = document.createElement('li');
+            const text = document.createElement('span');
+            text.textContent = `${task.label} (${task.schedule_type.replaceAll('_', ' ')})`;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'danger';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', async () => {
+              if (!confirm(`Remove "${task.label}" from the Closing Report?`)) return;
+              try {
+                const data = await request('remove_closing_task', { task_id: task.id });
+                renderTasks(data.tasks);
+                setMessage(taskMessage, 'Closing task removed.');
+              } catch (error) {
+                setMessage(taskMessage, error.message, true);
+              }
+            });
+            item.append(text, remove);
+            taskList.append(item);
+          });
+        }
+
+        async function loadDashboard() {
+          const month = document.getElementById('artist-month').value;
+          const data = await request('load', { month });
+          document.getElementById('artist-name').value = data.artist?.artist_name || '';
+          document.getElementById('artist-contact').value = data.artist?.contact_info || '';
+          renderTasks(data.tasks);
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          password = document.getElementById('host-password').value;
+          try {
+            await loadDashboard();
+            loginPanel.hidden = true;
+            dashboard.hidden = false;
+          } catch (error) {
+            password = '';
+            setMessage(loginMessage, error.message === 'Unauthorized' ? 'Incorrect password.' : error.message, true);
+          }
+        });
+
+        document.getElementById('artist-month').addEventListener('change', async () => {
+          try {
+            await loadDashboard();
+          } catch (error) {
+            setMessage(artistMessage, error.message, true);
+          }
+        });
+
+        document.getElementById('artist-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          try {
+            await request('save_artist_highlight', {
+              month: document.getElementById('artist-month').value,
+              artist_name: document.getElementById('artist-name').value.trim(),
+              contact_info: document.getElementById('artist-contact').value.trim()
+            });
+            setMessage(artistMessage, 'Artist highlight saved.');
+          } catch (error) {
+            setMessage(artistMessage, error.message, true);
+          }
+        });
+
+        document.getElementById('task-form').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          try {
+            const data = await request('add_closing_task', {
+              label: document.getElementById('task-label').value.trim(),
+              schedule_type: document.getElementById('task-schedule').value
+            });
+            event.currentTarget.reset();
+            renderTasks(data.tasks);
+            setMessage(taskMessage, 'Closing task added.');
+          } catch (error) {
+            setMessage(taskMessage, error.message, true);
+          }
+        });
+
+        document.getElementById('logout-button').addEventListener('click', () => {
+          password = '';
+          document.getElementById('host-password').value = '';
+          dashboard.hidden = true;
+          loginPanel.hidden = false;
+          loginMessage.textContent = '';
+        });
+
+        const now = new Date();
+        document.getElementById('artist-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      })();
+    </script>
+  </body>
+</html>
