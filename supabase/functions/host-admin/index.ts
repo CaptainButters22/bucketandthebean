@@ -343,6 +343,28 @@ Deno.serve(async (request) => {
       return json(request, { events: await listEvents() });
     }
 
+    if (body.action === 'update_event') {
+      if (typeof body.event_id !== 'string' || !validEventDate(body.event_date) || typeof body.title !== 'string' || !body.title.trim()) {
+        return json(request, { error: 'An event title, valid date, and event ID are required.' }, 400);
+      }
+      if (!validRecurrence(body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
+        return json(request, { error: 'Invalid event details.' }, 400);
+      }
+      const { error } = await supabase
+        .from('calendar_events')
+        .update({
+          title: body.title.trim(),
+          event_date: body.event_date,
+          recurrence: body.recurrence,
+          start_time: body.start_time || null,
+          end_time: body.end_time || null,
+          description: body.description.trim()
+        })
+        .eq('id', body.event_id);
+      if (error) throw error;
+      return json(request, { events: await listEvents() });
+    }
+
     if (body.action === 'remove_event') {
       if (typeof body.event_id !== 'string') return json(request, { error: 'Invalid event' }, 400);
       const { error } = await supabase.from('calendar_events').delete().eq('id', body.event_id);
