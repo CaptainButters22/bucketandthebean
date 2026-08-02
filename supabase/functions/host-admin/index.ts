@@ -171,11 +171,39 @@ Deno.serve(async (request) => {
   async function listEvents() {
     const { data, error } = await supabase
       .from('calendar_events')
-      .select('id,title,event_date,start_time,end_time,description,recurrence')
+      .select('id,title,event_date,start_time,end_time,description,recurrence,image_url')
       .order('event_date')
       .order('created_at');
     if (error) throw error;
     return data ?? [];
+  }
+
+  async function uploadEventImage(value: unknown) {
+    if (typeof value !== 'string') throw new Error('Invalid event image.');
+    const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
+    if (!match) throw new Error('Event images must be JPG, PNG, or WebP files.');
+
+    const bytes = Uint8Array.from(atob(match[2]), (character) => character.charCodeAt(0));
+    if (bytes.byteLength > 3 * 1024 * 1024) throw new Error('Event images must be 3 MB or smaller.');
+
+    const extension = match[1] === 'image/jpeg' ? 'jpg' : match[1].slice('image/'.length);
+    const path = `events/${crypto.randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from('event-images').upload(path, bytes, {
+      contentType: match[1],
+      upsert: false
+    });
+    if (error) throw error;
+    return supabase.storage.from('event-images').getPublicUrl(path).data.publicUrl;
+  }
+
+  async function deleteEventImage(imageUrl: unknown) {
+    if (typeof imageUrl !== 'string' || !imageUrl) return;
+    const marker = '/storage/v1/object/public/event-images/';
+    const index = imageUrl.indexOf(marker);
+    if (index === -1) return;
+    const path = decodeURIComponent(imageUrl.slice(index + marker.length).split('?')[0]);
+    const { error } = await supabase.storage.from('event-images').remove([path]);
+    if (error) throw error;
   }
 
   async function listInventoryItems() {
@@ -329,6 +357,7 @@ Deno.serve(async (request) => {
       if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
+      const imageUrl = body.image === undefined ? null : await uploadEventImage(body.image);
       const { error } = await supabase.from('calendar_events').insert({
         id: crypto.randomUUID(),
         title: body.title.trim(),
@@ -337,9 +366,13 @@ Deno.serve(async (request) => {
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),
+        image_url: imageUrl,
         is_published: true
       });
-      if (error) throw error;
+      if (error) {
+        await deleteEventImage(imageUrl);
+        throw error;
+      }
       return json(request, { events: await listEvents() });
     }
 
@@ -350,23 +383,52 @@ Deno.serve(async (request) => {
       if (!validRecurrence(body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
+      const { data: existing, error: existingError } = await supabase
+        .from('calendar_events')
+        .select('image_url')
+        .eq('id', body.event_id)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing) return json(request, { error: 'Event not found.' }, 404);
+
+      let replacementImageUrl: string | null | undefined;
+      if (body.image !== undefined) {
+        replacementImageUrl = await uploadEventImage(body.image);
+      } else if (body.remove_image === true) {
+        replacementImageUrl = null;
+      }
+
+      const eventUpdate = {
+        title: body.title.trim(),
+        event_date: body.event_date,
+        recurrence: body.recurrence,
+        start_time: body.start_time || null,
+        end_time: body.end_time || null,
+        description: body.description.trim(),
+        ...(replacementImageUrl === undefined ? {} : { image_url: replacementImageUrl })
+      };
       const { error } = await supabase
         .from('calendar_events')
-        .update({
-          title: body.title.trim(),
-          event_date: body.event_date,
-          recurrence: body.recurrence,
-          start_time: body.start_time || null,
-          end_time: body.end_time || null,
-          description: body.description.trim()
-        })
+        .update(eventUpdate)
         .eq('id', body.event_id);
-      if (error) throw error;
+      if (error) {
+        if (replacementImageUrl) await deleteEventImage(replacementImageUrl);
+        throw error;
+      }
+      if (replacementImageUrl !== undefined) await deleteEventImage(existing.image_url);
       return json(request, { events: await listEvents() });
     }
 
     if (body.action === 'remove_event') {
       if (typeof body.event_id !== 'string') return json(request, { error: 'Invalid event' }, 400);
+      const { data: existing, error: existingError } = await supabase
+        .from('calendar_events')
+        .select('image_url')
+        .eq('id', body.event_id)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing) return json(request, { error: 'Event not found.' }, 404);
+      await deleteEventImage(existing.image_url);
       const { error } = await supabase.from('calendar_events').delete().eq('id', body.event_id);
       if (error) throw error;
       return json(request, { events: await listEvents() });

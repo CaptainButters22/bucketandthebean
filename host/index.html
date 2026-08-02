@@ -118,6 +118,14 @@
             <label for="event-description">Description <span>(optional)</span>
               <textarea id="event-description"></textarea>
             </label>
+            <label for="event-image">Event image <span>(optional, JPG, PNG, or WebP; 3 MB max)</span>
+              <input id="event-image" type="file" accept="image/jpeg,image/png,image/webp" />
+            </label>
+            <label id="event-remove-image-field" for="event-remove-image" hidden>
+              <input id="event-remove-image" type="checkbox" />
+              Remove the current event image
+            </label>
+            <p id="event-image-status" class="message" aria-live="polite"></p>
             <div class="actions" style="margin-top: 1rem;">
               <button id="event-submit-button" type="submit">Add event</button>
               <button id="cancel-event-edit" class="secondary" type="button" hidden>Cancel edit</button>
@@ -186,6 +194,10 @@
         const eventList = document.getElementById('event-list');
         const eventSubmitButton = document.getElementById('event-submit-button');
         const cancelEventEditButton = document.getElementById('cancel-event-edit');
+        const eventImageInput = document.getElementById('event-image');
+        const eventRemoveImageField = document.getElementById('event-remove-image-field');
+        const eventRemoveImageInput = document.getElementById('event-remove-image');
+        const eventImageStatus = document.getElementById('event-image-status');
         const pastEventsSection = document.getElementById('past-events-section');
         const pastEventCount = document.getElementById('past-event-count');
         const pastEventList = document.getElementById('past-event-list');
@@ -287,6 +299,10 @@
           document.getElementById('event-start-time').value = '';
           document.getElementById('event-end-time').value = '';
           document.getElementById('event-description').value = '';
+          eventImageInput.value = '';
+          eventRemoveImageInput.checked = false;
+          eventRemoveImageField.hidden = true;
+          eventImageStatus.textContent = '';
           eventSubmitButton.textContent = 'Add event';
           cancelEventEditButton.hidden = true;
         }
@@ -299,6 +315,12 @@
           document.getElementById('event-start-time').value = event.start_time ? event.start_time.slice(0, 5) : '';
           document.getElementById('event-end-time').value = event.end_time ? event.end_time.slice(0, 5) : '';
           document.getElementById('event-description').value = event.description || '';
+          eventImageInput.value = '';
+          eventRemoveImageInput.checked = false;
+          eventRemoveImageField.hidden = !event.image_url;
+          eventImageStatus.textContent = event.image_url
+            ? 'Current image attached. Select a new file to replace it.'
+            : '';
           eventSubmitButton.textContent = 'Save changes';
           cancelEventEditButton.hidden = false;
           eventForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -311,7 +333,10 @@
             const text = document.createElement('span');
             const time = [event.start_time, event.end_time].filter(Boolean).join(' - ');
             const details = [event.event_date, time].filter(Boolean).join(' - ');
-            text.textContent = details ? `${event.title} (${eventFrequencyLabel(event)}; ${details})` : `${event.title} (${eventFrequencyLabel(event)})`;
+            const imageLabel = event.image_url ? 'Image attached; ' : '';
+            text.textContent = details
+              ? `${event.title} (${imageLabel}${eventFrequencyLabel(event)}; ${details})`
+              : `${event.title} (${imageLabel}${eventFrequencyLabel(event)})`;
             const edit = document.createElement('button');
             edit.type = 'button';
             edit.className = 'secondary';
@@ -430,6 +455,19 @@
           renderTasks();
         });
 
+        function readEventImage(file) {
+          const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+          const maxBytes = 3 * 1024 * 1024;
+          if (!allowedTypes.has(file.type)) throw new Error('Choose a JPG, PNG, or WebP image.');
+          if (file.size > maxBytes) throw new Error('Event images must be 3 MB or smaller.');
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve(reader.result));
+            reader.addEventListener('error', () => reject(new Error('Unable to read the selected image.')));
+            reader.readAsDataURL(file);
+          });
+        }
+
         eventForm.addEventListener('submit', async (event) => {
           event.preventDefault();
           try {
@@ -441,6 +479,12 @@
               end_time: document.getElementById('event-end-time').value,
               description: document.getElementById('event-description').value.trim()
             };
+            const image = eventImageInput.files[0];
+            if (image) {
+              payload.image = await readEventImage(image);
+            } else if (editingEventId && eventRemoveImageInput.checked) {
+              payload.remove_image = true;
+            }
             const data = editingEventId
               ? await request('update_event', { event_id: editingEventId, ...payload })
               : await request('add_event', payload);
