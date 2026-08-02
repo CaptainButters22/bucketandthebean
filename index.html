@@ -77,6 +77,7 @@
     .calendar-modal-content h3 { margin: 0 0 8px 0; }
     .calendar-modal-content .close-btn { position: absolute; right: 12px; top: 8px; background: transparent; border: none; font-size: 20px; cursor: pointer; }
     .calendar-event-image { display:block; width:100%; max-height:280px; margin-top:10px; object-fit:contain; border-radius:6px; }
+    .calendar-event-website-link { color:#0000ee; text-decoration:underline; }
     </style>
   <!-- noop patch: trigger commit -->
   </head>
@@ -521,6 +522,7 @@
               link.href = e.websiteUrl;
               link.target = '_blank';
               link.rel = 'noopener noreferrer';
+              link.className = 'calendar-event-website-link';
               link.textContent = 'Click Here';
               website.append(label, link);
               li.appendChild(website);
