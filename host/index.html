@@ -118,6 +118,9 @@
             <label for="event-description">Description <span>(optional)</span>
               <textarea id="event-description"></textarea>
             </label>
+            <label for="event-website-url">Website URL <span>(optional)</span>
+              <input id="event-website-url" type="url" placeholder="https://example.com" />
+            </label>
             <label for="event-image">Event image <span>(optional, JPG, PNG, or WebP; 3 MB max)</span>
               <input id="event-image" type="file" accept="image/jpeg,image/png,image/webp" />
             </label>
@@ -299,6 +302,7 @@
           document.getElementById('event-start-time').value = '';
           document.getElementById('event-end-time').value = '';
           document.getElementById('event-description').value = '';
+          document.getElementById('event-website-url').value = '';
           eventImageInput.value = '';
           eventRemoveImageInput.checked = false;
           eventRemoveImageField.hidden = true;
@@ -315,6 +319,7 @@
           document.getElementById('event-start-time').value = event.start_time ? event.start_time.slice(0, 5) : '';
           document.getElementById('event-end-time').value = event.end_time ? event.end_time.slice(0, 5) : '';
           document.getElementById('event-description').value = event.description || '';
+          document.getElementById('event-website-url').value = event.website_url || '';
           eventImageInput.value = '';
           eventRemoveImageInput.checked = false;
           eventRemoveImageField.hidden = !event.image_url;
@@ -334,9 +339,10 @@
             const time = [event.start_time, event.end_time].filter(Boolean).join(' - ');
             const details = [event.event_date, time].filter(Boolean).join(' - ');
             const imageLabel = event.image_url ? 'Image attached; ' : '';
+            const websiteLabel = event.website_url ? 'Website linked; ' : '';
             text.textContent = details
-              ? `${event.title} (${imageLabel}${eventFrequencyLabel(event)}; ${details})`
-              : `${event.title} (${imageLabel}${eventFrequencyLabel(event)})`;
+              ? `${event.title} (${imageLabel}${websiteLabel}${eventFrequencyLabel(event)}; ${details})`
+              : `${event.title} (${imageLabel}${websiteLabel}${eventFrequencyLabel(event)})`;
             const edit = document.createElement('button');
             edit.type = 'button';
             edit.className = 'secondary';
@@ -477,7 +483,8 @@
               recurrence: document.getElementById('event-recurrence').value,
               start_time: document.getElementById('event-start-time').value,
               end_time: document.getElementById('event-end-time').value,
-              description: document.getElementById('event-description').value.trim()
+              description: document.getElementById('event-description').value.trim(),
+              website_url: document.getElementById('event-website-url').value.trim()
             };
             const image = eventImageInput.files[0];
             if (image) {
