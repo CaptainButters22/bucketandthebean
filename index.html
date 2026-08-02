@@ -76,6 +76,7 @@
     .calendar-modal-content { position:relative; box-sizing:border-box; max-height:calc(100dvh - 32px); overflow-y:auto; background: #fff; color:#222; padding: 16px; border-radius: 8px; max-width: 520px; width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
     .calendar-modal-content h3 { margin: 0 0 8px 0; }
     .calendar-modal-content .close-btn { position: absolute; right: 12px; top: 8px; background: transparent; border: none; font-size: 20px; cursor: pointer; }
+    .calendar-event-image { display:block; width:100%; max-height:280px; margin-top:10px; object-fit:contain; border-radius:6px; }
     </style>
   <!-- noop patch: trigger commit -->
   </head>
@@ -350,7 +351,7 @@
         }
 
         async function loadCalendarEvents(year, month) {
-          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence&is_published=eq.true&order=event_date.asc`;
+          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence,image_url&is_published=eq.true&order=event_date.asc`;
 
           try {
             const response = await fetch(url, {
@@ -378,7 +379,8 @@
             date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
             title: event.title,
             time: formatEventTime(event.start_time, event.end_time),
-            desc: event.description || ''
+            desc: event.description || '',
+            imageUrl: event.image_url || ''
           });
 
           if (recurrence === 'once') {
@@ -503,6 +505,13 @@
             const description = document.createElement('div');
             description.textContent = e.desc;
             li.append(title, document.createElement('br'), time, description);
+            if (e.imageUrl) {
+              const image = document.createElement('img');
+              image.className = 'calendar-event-image';
+              image.src = e.imageUrl;
+              image.alt = `${e.title} event image`;
+              li.appendChild(image);
+            }
             modalEvents.appendChild(li);
           });
           dayModal.classList.add('active');
