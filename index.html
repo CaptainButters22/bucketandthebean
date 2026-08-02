@@ -351,7 +351,7 @@
         }
 
         async function loadCalendarEvents(year, month) {
-          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence,image_url&is_published=eq.true&order=event_date.asc`;
+          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence,image_url,website_url&is_published=eq.true&order=event_date.asc`;
 
           try {
             const response = await fetch(url, {
@@ -380,7 +380,8 @@
             title: event.title,
             time: formatEventTime(event.start_time, event.end_time),
             desc: event.description || '',
-            imageUrl: event.image_url || ''
+            imageUrl: event.image_url || '',
+            websiteUrl: event.website_url || ''
           });
 
           if (recurrence === 'once') {
@@ -511,6 +512,18 @@
               image.src = e.imageUrl;
               image.alt = `${e.title} event image`;
               li.appendChild(image);
+            }
+            if (e.websiteUrl) {
+              const website = document.createElement('div');
+              const label = document.createElement('strong');
+              const link = document.createElement('a');
+              label.textContent = 'Website: ';
+              link.href = e.websiteUrl;
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              link.textContent = 'Click Here';
+              website.append(label, link);
+              li.appendChild(website);
             }
             modalEvents.appendChild(li);
           });

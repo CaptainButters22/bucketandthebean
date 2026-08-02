@@ -90,6 +90,17 @@ function validOptionalTime(value: unknown): value is string {
   return typeof value === 'string' && (value === '' || /^\d{2}:\d{2}$/.test(value));
 }
 
+function validOptionalWebsiteUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > 2048) return false;
+  if (!value.trim()) return true;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' || url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 function validRecurrence(value: unknown): value is 'once' | 'weekly' | 'monthly' {
   return value === 'once' || value === 'weekly' || value === 'monthly';
 }
@@ -171,7 +182,7 @@ Deno.serve(async (request) => {
   async function listEvents() {
     const { data, error } = await supabase
       .from('calendar_events')
-      .select('id,title,event_date,start_time,end_time,description,recurrence,image_url')
+      .select('id,title,event_date,start_time,end_time,description,recurrence,image_url,website_url')
       .order('event_date')
       .order('created_at');
     if (error) throw error;
@@ -354,7 +365,8 @@ Deno.serve(async (request) => {
       if (!validRecurrence(recurrence)) {
         return json(request, { error: 'Invalid event frequency.' }, 400);
       }
-      if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
+      const websiteUrl = body.website_url ?? '';
+      if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string' || !validOptionalWebsiteUrl(websiteUrl)) {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
       const imageUrl = body.image === undefined ? null : await uploadEventImage(body.image);
@@ -366,6 +378,7 @@ Deno.serve(async (request) => {
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),
+        website_url: websiteUrl.trim() || null,
         image_url: imageUrl,
         is_published: true
       });
@@ -380,7 +393,8 @@ Deno.serve(async (request) => {
       if (typeof body.event_id !== 'string' || !validEventDate(body.event_date) || typeof body.title !== 'string' || !body.title.trim()) {
         return json(request, { error: 'An event title, valid date, and event ID are required.' }, 400);
       }
-      if (!validRecurrence(body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string') {
+      const websiteUrl = body.website_url ?? '';
+      if (!validRecurrence(body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string' || !validOptionalWebsiteUrl(websiteUrl)) {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
       const { data: existing, error: existingError } = await supabase
@@ -405,6 +419,7 @@ Deno.serve(async (request) => {
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),
+        website_url: websiteUrl.trim() || null,
         ...(replacementImageUrl === undefined ? {} : { image_url: replacementImageUrl })
       };
       const { error } = await supabase
