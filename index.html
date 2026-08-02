@@ -71,9 +71,9 @@
     .reason-bubbles label { padding:8px 12px; border-radius:999px; border:1px solid #d0cfcf; cursor:pointer; background:#fff; color:#3b2f2f; }
     .reason-bubbles input:checked + label { background:#5b3a30; color:#fff; border-color:transparent; }
     /* Modal for day-click event list */
-    .calendar-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.45); z-index: 10000; }
+    .calendar-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding:16px; background: rgba(0,0,0,0.45); z-index: 10000; }
     .calendar-modal.active { display: flex; }
-    .calendar-modal-content { background: #fff; color:#222; padding: 16px; border-radius: 8px; max-width: 520px; width: 92%; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
+    .calendar-modal-content { position:relative; box-sizing:border-box; max-height:calc(100dvh - 32px); overflow-y:auto; background: #fff; color:#222; padding: 16px; border-radius: 8px; max-width: 520px; width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.18); }
     .calendar-modal-content h3 { margin: 0 0 8px 0; }
     .calendar-modal-content .close-btn { position: absolute; right: 12px; top: 8px; background: transparent; border: none; font-size: 20px; cursor: pointer; }
     </style>
