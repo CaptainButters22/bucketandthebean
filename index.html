@@ -55,7 +55,7 @@
     .calendar-cell { min-height:80px; background:#fff; border-radius:6px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,0.04); position:relative; }
     .calendar-cell.inactive { opacity:0.45; }
     .calendar-cell .date-num { font-weight:600; color:#3b2f2f; }
-    .event-bubble { display:block; margin-top:8px; background:#fff7ef; color:#5b3a30; border-radius:12px; padding:4px 8px; font-size:11px; font-weight:600; line-height:1.1; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .event-bubble { display:block; margin-top:4px; background:#fff7ef; color:#5b3a30; border-radius:12px; padding:4px 8px; font-size:11px; font-weight:600; line-height:1.1; box-shadow:0 2px 6px rgba(0,0,0,0.06); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .calendar-tooltip { position:fixed; z-index:9999; background:#fff; color:#222; border:1px solid rgba(0,0,0,0.08); padding:10px; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); display:none; max-width:320px; }
 
     /* global font adjustments to use standard UI fonts for titles */
@@ -466,23 +466,15 @@
             const iso = cellDate.toISOString().slice(0,10);
             const todaysEvents = events.filter(e => e.date === iso);
             if (todaysEvents.length) {
-              // create a small text bubble listing event titles (compact)
-              const bubble = document.createElement('div');
-              bubble.className = 'event-bubble';
-              // show only event names in the small bubble; keep full list in the title/tooltip
               const titles = todaysEvents.map(e => e.title);
-              const combined = titles.join(', ');
-              bubble.title = combined;
-              // if the combined text is too long, show a simple ellipsis
-              if (combined.length > 24) {
-                bubble.textContent = '...';
-              } else {
-                bubble.textContent = combined;
-              }
-              bubble.style.whiteSpace = 'nowrap';
-              cell.appendChild(bubble);
+              titles.slice(0, 3).forEach((title) => {
+                const bubble = document.createElement('div');
+                bubble.className = 'event-bubble';
+                bubble.title = title;
+                bubble.textContent = title;
+                cell.appendChild(bubble);
+              });
               cell.dataset.events = JSON.stringify(todaysEvents);
-              // keep tooltip behavior on hover (but show the bubble by default)
               cell.addEventListener('mouseenter', (ev)=> showTooltip(ev.currentTarget, todaysEvents));
               cell.addEventListener('mouseleave', hideTooltip);
               cell.addEventListener('click', (ev)=> { ev.stopPropagation(); showDayModal(todaysEvents, cellDate); });
