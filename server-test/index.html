@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Server Test | Bucket & the Bean</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .server-test { max-width: 42rem; margin: 5rem auto; padding: 0 1.5rem; text-align: center; }
+    .server-test-card { background: var(--surface); border-radius: 1.25rem; box-shadow: var(--shadow); padding: 2.5rem; }
+    .counter-price { font-size: clamp(3rem, 10vw, 6rem); font-weight: 800; margin: 1rem 0 0; }
+    .counter-count { color: var(--muted); margin: 0 0 1.5rem; }
+    .counter-button { background: var(--accent); color: #fff; font-size: 1.1rem; padding: 1rem 1.75rem; }
+    .counter-button:disabled { cursor: wait; opacity: .7; }
+    .server-status { min-height: 1.5rem; color: var(--muted); }
+    .server-status.error { color: #9b2c2c; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main class="server-test">
+    <a href="../">← Back to Bucket & the Bean</a>
+    <section class="server-test-card" aria-labelledby="page-title">
+      <p class="eyebrow">Live server connection test</p>
+      <h1 id="page-title">One Penny Counter</h1>
+      <p>Each press asks the data server to add one cent and one count.</p>
+      <p class="counter-price" id="counter-price" aria-live="polite">—</p>
+      <p class="counter-count" id="counter-count">Loading counter…</p>
+      <button class="counter-button" id="counter-button" type="button" disabled>Add one penny</button>
+      <p class="server-status" id="server-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script>
+    const API_URL = "https://api.dannysdesigns.com/api/tests/bucket-and-the-bean-counter";
+    const price = document.querySelector("#counter-price");
+    const count = document.querySelector("#counter-count");
+    const button = document.querySelector("#counter-button");
+    const status = document.querySelector("#server-status");
+
+    function showMaintenance() {
+      price.textContent = "Server under maintenance";
+      count.textContent = "The counter will return when the data server is online.";
+      status.textContent = "";
+      status.classList.add("error");
+      button.disabled = true;
+    }
+
+    function renderCounter(data) {
+      price.textContent = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" })
+        .format(data.price_cents / 100);
+      count.textContent = `Count: ${data.count}`;
+      status.textContent = "Connected to the data server.";
+      status.classList.remove("error");
+      button.disabled = false;
+    }
+
+    async function requestCounter(method) {
+      const response = await fetch(API_URL, { method });
+      if (!response.ok) throw new Error("Counter request failed");
+      return response.json();
+    }
+
+    async function loadCounter() {
+      try {
+        renderCounter(await requestCounter("GET"));
+      } catch {
+        showMaintenance();
+      }
+    }
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      status.textContent = "Saving one penny…";
+      try {
+        renderCounter(await requestCounter("POST"));
+      } catch {
+        showMaintenance();
+      }
+    });
+
+    loadCounter();
+  </script>
+</body>
+</html>
