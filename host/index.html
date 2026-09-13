@@ -94,7 +94,7 @@
           <h2>Calendar Events</h2>
           <form id="event-form">
             <div class="field-grid">
-              <label for="event-date">Date
+              <label for="event-date">First occurrence date
                 <input id="event-date" type="date" required />
               </label>
               <label for="event-title">Event title
@@ -106,6 +106,27 @@
                   <option value="weekly">Every week</option>
                   <option value="monthly">Every month</option>
                 </select>
+              </label>
+            </div>
+            <div id="event-repeat-options" class="field-grid" hidden>
+              <label id="event-monthly-mode-field" for="event-monthly-mode" hidden>Repeat monthly
+                <select id="event-monthly-mode">
+                  <option value="date">On this date (for example, every 12th)</option>
+                  <option value="weekday">On this weekday (for example, every first Wednesday)</option>
+                </select>
+              </label>
+              <label for="event-repeat-end">End repeat
+                <select id="event-repeat-end">
+                  <option value="never">Never</option>
+                  <option value="count">After a number of occurrences</option>
+                  <option value="date">On a date</option>
+                </select>
+              </label>
+              <label id="event-repeat-count-field" for="event-repeat-count" hidden>Total occurrences
+                <input id="event-repeat-count" type="number" min="1" max="1000" step="1" inputmode="numeric" />
+              </label>
+              <label id="event-repeat-date-field" for="event-repeat-date" hidden>Repeat through
+                <input id="event-repeat-date" type="date" />
               </label>
             </div>
             <div class="field-grid">
@@ -139,7 +160,7 @@
           <h3>Active events</h3>
           <ul id="event-list" class="task-list" aria-live="polite"></ul>
           <details id="past-events-section" hidden>
-            <summary>Past single-use events (<span id="past-event-count">0</span>)</summary>
+            <summary>Past events (<span id="past-event-count">0</span>)</summary>
             <ul id="past-event-list" class="task-list" aria-live="polite"></ul>
           </details>
         </section>
@@ -181,6 +202,7 @@
 
       </section>
     </main>
+    <script src="../calendar-recurrence.js"></script>
     <script>
       (() => {
         const HOST_ADMIN_ENDPOINT = 'https://ggqkabtiwlyvyjdbccjv.supabase.co/functions/v1/host-admin';
@@ -202,6 +224,16 @@
         const eventRemoveImageField = document.getElementById('event-remove-image-field');
         const eventRemoveImageInput = document.getElementById('event-remove-image');
         const eventImageStatus = document.getElementById('event-image-status');
+        const eventDateInput = document.getElementById('event-date');
+        const eventRecurrenceInput = document.getElementById('event-recurrence');
+        const eventRepeatOptions = document.getElementById('event-repeat-options');
+        const eventMonthlyModeField = document.getElementById('event-monthly-mode-field');
+        const eventMonthlyModeInput = document.getElementById('event-monthly-mode');
+        const eventRepeatEndInput = document.getElementById('event-repeat-end');
+        const eventRepeatCountField = document.getElementById('event-repeat-count-field');
+        const eventRepeatCountInput = document.getElementById('event-repeat-count');
+        const eventRepeatDateField = document.getElementById('event-repeat-date-field');
+        const eventRepeatDateInput = document.getElementById('event-repeat-date');
         const pastEventsSection = document.getElementById('past-events-section');
         const pastEventCount = document.getElementById('past-event-count');
         const pastEventList = document.getElementById('past-event-list');
@@ -288,18 +320,42 @@
         }
 
         function eventFrequencyLabel(event) {
-          return event.recurrence === 'weekly'
+          if (event.recurrence === 'once') return 'Single use';
+          const frequency = event.recurrence === 'weekly'
             ? 'Every week'
-            : event.recurrence === 'monthly'
-              ? 'Every month'
-              : 'Single use';
+            : event.monthly_mode === 'weekday'
+              ? 'Every month by weekday'
+              : 'Every month by date';
+          if (event.recurrence_end_type === 'count') {
+            return `${frequency}; ${event.recurrence_end_count} occurrences total`;
+          }
+          if (event.recurrence_end_type === 'date') {
+            return `${frequency}; through ${event.recurrence_end_date}`;
+          }
+          return frequency;
+        }
+
+        function updateEventRepeatFields() {
+          const repeats = eventRecurrenceInput.value !== 'once';
+          const endType = repeats ? eventRepeatEndInput.value : 'never';
+          eventRepeatOptions.hidden = !repeats;
+          eventMonthlyModeField.hidden = eventRecurrenceInput.value !== 'monthly';
+          eventRepeatCountField.hidden = endType !== 'count';
+          eventRepeatDateField.hidden = endType !== 'date';
+          eventRepeatCountInput.required = endType === 'count';
+          eventRepeatDateInput.required = endType === 'date';
+          eventRepeatDateInput.min = eventDateInput.value;
         }
 
         function resetEventForm() {
           editingEventId = null;
-          document.getElementById('event-date').value = '';
+          eventDateInput.value = '';
           document.getElementById('event-title').value = '';
-          document.getElementById('event-recurrence').value = 'once';
+          eventRecurrenceInput.value = 'once';
+          eventMonthlyModeInput.value = 'date';
+          eventRepeatEndInput.value = 'never';
+          eventRepeatCountInput.value = '';
+          eventRepeatDateInput.value = '';
           document.getElementById('event-start-time').value = '';
           document.getElementById('event-end-time').value = '';
           document.getElementById('event-description').value = '';
@@ -310,13 +366,18 @@
           eventImageStatus.textContent = '';
           eventSubmitButton.textContent = 'Add event';
           cancelEventEditButton.hidden = true;
+          updateEventRepeatFields();
         }
 
         function editEvent(event) {
           editingEventId = event.id;
-          document.getElementById('event-date').value = event.event_date;
+          eventDateInput.value = event.event_date;
           document.getElementById('event-title').value = event.title;
-          document.getElementById('event-recurrence').value = event.recurrence || 'once';
+          eventRecurrenceInput.value = event.recurrence || 'once';
+          eventMonthlyModeInput.value = event.monthly_mode || 'date';
+          eventRepeatEndInput.value = event.recurrence_end_type || 'never';
+          eventRepeatCountInput.value = event.recurrence_end_count || '';
+          eventRepeatDateInput.value = event.recurrence_end_date || '';
           document.getElementById('event-start-time').value = event.start_time ? event.start_time.slice(0, 5) : '';
           document.getElementById('event-end-time').value = event.end_time ? event.end_time.slice(0, 5) : '';
           document.getElementById('event-description').value = event.description || '';
@@ -329,6 +390,7 @@
             : '';
           eventSubmitButton.textContent = 'Save changes';
           cancelEventEditButton.hidden = false;
+          updateEventRepeatFields();
           eventForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
@@ -372,8 +434,12 @@
 
         function renderEvents() {
           const today = todayDate();
-          const activeEvents = events.filter((event) => event.recurrence !== 'once' || event.event_date >= today);
-          const pastEvents = events.filter((event) => event.recurrence === 'once' && event.event_date < today);
+          const isActive = (event) => {
+            const lastOccurrence = CalendarRecurrence.lastOccurrenceDate(event);
+            return !lastOccurrence || CalendarRecurrence.dateKey(lastOccurrence) >= today;
+          };
+          const activeEvents = events.filter(isActive);
+          const pastEvents = events.filter((event) => !isActive(event));
           renderEventList(eventList, activeEvents);
           renderEventList(pastEventList, pastEvents);
           pastEventCount.textContent = String(pastEvents.length);
@@ -478,10 +544,20 @@
         eventForm.addEventListener('submit', async (event) => {
           event.preventDefault();
           try {
+            const recurrence = eventRecurrenceInput.value;
+            const recurrenceEndType = recurrence === 'once' ? 'never' : eventRepeatEndInput.value;
             const payload = {
-              event_date: document.getElementById('event-date').value,
+              event_date: eventDateInput.value,
               title: document.getElementById('event-title').value.trim(),
-              recurrence: document.getElementById('event-recurrence').value,
+              recurrence,
+              monthly_mode: eventMonthlyModeInput.value,
+              recurrence_end_type: recurrenceEndType,
+              recurrence_end_count: recurrenceEndType === 'count'
+                ? Number(eventRepeatCountInput.value)
+                : null,
+              recurrence_end_date: recurrenceEndType === 'date'
+                ? eventRepeatDateInput.value
+                : null,
               start_time: document.getElementById('event-start-time').value,
               end_time: document.getElementById('event-end-time').value,
               description: document.getElementById('event-description').value.trim(),
@@ -511,6 +587,10 @@
           eventMessage.textContent = '';
         });
 
+        eventRecurrenceInput.addEventListener('change', updateEventRepeatFields);
+        eventRepeatEndInput.addEventListener('change', updateEventRepeatFields);
+        eventDateInput.addEventListener('change', updateEventRepeatFields);
+
         document.getElementById('logout-button').addEventListener('click', () => {
           password = '';
           document.getElementById('host-password').value = '';
@@ -521,6 +601,7 @@
 
         const now = new Date();
         document.getElementById('artist-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        updateEventRepeatFields();
       })();
     </script>
   </body>

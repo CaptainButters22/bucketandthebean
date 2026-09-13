@@ -105,6 +105,28 @@ function validRecurrence(value: unknown): value is 'once' | 'weekly' | 'monthly'
   return value === 'once' || value === 'weekly' || value === 'monthly';
 }
 
+function validRepeatOptions(body: Record<string, unknown>, recurrence: 'once' | 'weekly' | 'monthly') {
+  const monthlyMode = body.monthly_mode ?? 'date';
+  const endType = body.recurrence_end_type ?? 'never';
+  if (monthlyMode !== 'date' && monthlyMode !== 'weekday') return false;
+  if (endType !== 'never' && endType !== 'count' && endType !== 'date') return false;
+  if (recurrence === 'once') {
+    return endType === 'never' && body.recurrence_end_count == null && body.recurrence_end_date == null;
+  }
+  if (endType === 'never') {
+    return body.recurrence_end_count == null && body.recurrence_end_date == null;
+  }
+  if (endType === 'count') {
+    return Number.isInteger(body.recurrence_end_count)
+      && Number(body.recurrence_end_count) > 0
+      && Number(body.recurrence_end_count) <= 1000
+      && body.recurrence_end_date == null;
+  }
+  return validEventDate(body.recurrence_end_date)
+    && String(body.recurrence_end_date) >= String(body.event_date)
+    && body.recurrence_end_count == null;
+}
+
 function validSchedule(value: unknown): value is string {
   return ['always', 'monday', 'every_other_day', 'every_other_wednesday'].includes(String(value));
 }
@@ -182,7 +204,7 @@ Deno.serve(async (request) => {
   async function listEvents() {
     const { data, error } = await supabase
       .from('calendar_events')
-      .select('id,title,event_date,start_time,end_time,description,recurrence,image_url,website_url')
+      .select('id,title,event_date,start_time,end_time,description,recurrence,monthly_mode,recurrence_end_type,recurrence_end_count,recurrence_end_date,image_url,website_url')
       .order('event_date')
       .order('created_at');
     if (error) throw error;
@@ -365,6 +387,9 @@ Deno.serve(async (request) => {
       if (!validRecurrence(recurrence)) {
         return json(request, { error: 'Invalid event frequency.' }, 400);
       }
+      if (!validRepeatOptions(body, recurrence)) {
+        return json(request, { error: 'Invalid repeat options.' }, 400);
+      }
       const websiteUrl = body.website_url ?? '';
       if (!validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string' || !validOptionalWebsiteUrl(websiteUrl)) {
         return json(request, { error: 'Invalid event details.' }, 400);
@@ -375,6 +400,10 @@ Deno.serve(async (request) => {
         title: body.title.trim(),
         event_date: body.event_date,
         recurrence,
+        monthly_mode: body.monthly_mode ?? 'date',
+        recurrence_end_type: body.recurrence_end_type ?? 'never',
+        recurrence_end_count: body.recurrence_end_count ?? null,
+        recurrence_end_date: body.recurrence_end_date ?? null,
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),
@@ -394,7 +423,7 @@ Deno.serve(async (request) => {
         return json(request, { error: 'An event title, valid date, and event ID are required.' }, 400);
       }
       const websiteUrl = body.website_url ?? '';
-      if (!validRecurrence(body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string' || !validOptionalWebsiteUrl(websiteUrl)) {
+      if (!validRecurrence(body.recurrence) || !validRepeatOptions(body, body.recurrence) || !validOptionalTime(body.start_time) || !validOptionalTime(body.end_time) || typeof body.description !== 'string' || !validOptionalWebsiteUrl(websiteUrl)) {
         return json(request, { error: 'Invalid event details.' }, 400);
       }
       const { data: existing, error: existingError } = await supabase
@@ -416,6 +445,10 @@ Deno.serve(async (request) => {
         title: body.title.trim(),
         event_date: body.event_date,
         recurrence: body.recurrence,
+        monthly_mode: body.monthly_mode ?? 'date',
+        recurrence_end_type: body.recurrence_end_type ?? 'never',
+        recurrence_end_count: body.recurrence_end_count ?? null,
+        recurrence_end_date: body.recurrence_end_date ?? null,
         start_time: body.start_time || null,
         end_time: body.end_time || null,
         description: body.description.trim(),

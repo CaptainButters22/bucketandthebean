@@ -316,6 +316,7 @@
     </footer>
 
     <script src="script.js"></script>
+    <script src="calendar-recurrence.js"></script>
     <script>
       // Position the store/menu button between the two hero action buttons
       function positionMenuButtonBetweenHeroButtons() {
@@ -419,7 +420,7 @@
         }
 
         async function loadCalendarEvents(year, month) {
-          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence,image_url,website_url&is_published=eq.true&order=event_date.asc`;
+          const url = `${SUPABASE_URL}/rest/v1/calendar_events?select=event_date,title,start_time,end_time,description,recurrence,monthly_mode,recurrence_end_type,recurrence_end_count,recurrence_end_date,image_url,website_url&is_published=eq.true&order=event_date.asc`;
 
           try {
             const response = await fetch(url, {
@@ -441,38 +442,15 @@
         }
 
         function calendarEventOccurrences(event, year, month) {
-          const startDate = new Date(`${event.event_date}T00:00:00`);
-          const recurrence = event.recurrence || 'once';
           const toCalendarEvent = (date) => ({
-            date: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+            date: CalendarRecurrence.dateKey(date),
             title: event.title,
             time: formatEventTime(event.start_time, event.end_time),
             desc: event.description || '',
             imageUrl: event.image_url || '',
             websiteUrl: event.website_url || ''
           });
-
-          if (recurrence === 'once') {
-            return startDate.getFullYear() === year && startDate.getMonth() === month
-              ? [toCalendarEvent(startDate)]
-              : [];
-          }
-
-          if (recurrence === 'weekly') {
-            const occurrences = [];
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            for (let day = 1; day <= daysInMonth; day += 1) {
-              const occurrence = new Date(year, month, day);
-              if (occurrence >= startDate && occurrence.getDay() === startDate.getDay()) {
-                occurrences.push(toCalendarEvent(occurrence));
-              }
-            }
-            return occurrences;
-          }
-
-          const day = Math.min(startDate.getDate(), new Date(year, month + 1, 0).getDate());
-          const occurrence = new Date(year, month, day);
-          return occurrence >= startDate ? [toCalendarEvent(occurrence)] : [];
+          return CalendarRecurrence.occurrencesForMonth(event, year, month).map(toCalendarEvent);
         }
 
         function formatEventTime(startTime, endTime) {
