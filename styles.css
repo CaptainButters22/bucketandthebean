@@ -145,7 +145,7 @@ button,
 }
 
 .instagram-feed {
-  width: min(100%, 42rem);
+  width: min(calc(100% - 2rem), 72rem);
   margin: 2.5rem auto 0;
   padding: 1.25rem;
   background: rgb(255 255 255 / 94%);
